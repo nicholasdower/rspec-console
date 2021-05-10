@@ -1,0 +1,29 @@
+PATH
+  remote: .
+  specs:
+    rspec-interactive (0.1.0)
+      listen
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ffi (1.15.0)
+    listen (3.5.1)
+      rb-fsevent (~> 0.10, >= 0.10.3)
+      rb-inotify (~> 0.9, >= 0.9.10)
+    rb-fsevent (0.11.0)
+    rb-inotify (0.10.1)
+      ffi (~> 1.0)
+    rspec-core (3.10.1)
+      rspec-support (~> 3.10.0)
+    rspec-support (3.10.2)
+
+PLATFORMS
+  x86_64-darwin-20
+
+DEPENDENCIES
+  rspec-core
+  rspec-interactive!
+
+BUNDLED WITH
+   2.2.17
