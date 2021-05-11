@@ -47,7 +47,8 @@ module RSpecInteractive
 
     def rspec_configuration
       proc do
-        load @config["init_script"]
+        $LOAD_PATH << '.'
+        require @config["init_script"]
       end
     end
 
