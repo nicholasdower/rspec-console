@@ -215,7 +215,7 @@ module RSpecInteractive
       end
 
       # Clear data from previous run.
-      RSpec.clear_examples
+      RSpec.reset
 
       @config_cache.replay_configuration
     end
