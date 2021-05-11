@@ -178,18 +178,10 @@ module RSpecInteractive
     end
 
     def rspec(args)
-      if args.empty?
-        STDERR.puts "you must specify one or more spec files"
-        return
-      end
-
-      # Allow wildcards.
-      filenames = args.flat_map { |filename| Dir.glob(filename) }
-
       # Initialize the runner. Also accessed by the signal handler above.
       # RSpecInteractive::Runner sets RSpec.world.wants_to_quit to false. The signal
       # handler sets it to true. 
-      @mutex.synchronize { @runner = RSpecInteractive::Runner.new(filenames) }
+      @mutex.synchronize { @runner = RSpecInteractive::Runner.new(args) }
 
       # Run the specs.
       @runner.run
