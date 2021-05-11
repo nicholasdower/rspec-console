@@ -178,6 +178,18 @@ module RSpecInteractive
     end
 
     def rspec(args)
+      # Setup Pry in case it is used.
+      if defined?(Pry)
+        # Prevent Pry from trapping too. It will break ctrl-c handling.
+        Pry.config.should_trap_interrupts = false
+
+        # Set Pry to use Readline, like us. This is the default anyway.
+        Pry.config.input = Readline
+      end
+
+      # If Pry does get used, it will add to history. We will clean that up after running the specs.
+      history_size = Readline::HISTORY.size
+
       # Initialize the runner. Also accessed by the signal handler above.
       # RSpecInteractive::Runner sets RSpec.world.wants_to_quit to false. The signal
       # handler sets it to true. 
@@ -188,6 +200,10 @@ module RSpecInteractive
 
       # Clear the runner.
       @mutex.synchronize { @runner = nil }
+
+      while Readline::HISTORY.size > history_size do
+        Readline::HISTORY.pop
+      end
 
       # Clear data from previous run.
       RSpec.clear_examples
