@@ -6,7 +6,8 @@ require 'readline'
 require 'rspec/core'
 require 'shellwords'
 
-require_relative 'rspec-interactive/runner.rb'
+require 'rspec-interactive/runner'
+require 'rspec-interactive/config_cache'
 
 module RSpecInteractive
   class Console
@@ -25,6 +26,7 @@ module RSpecInteractive
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
       @runner = nil
+      @config_cache = RSpecInteractive::ConfigCache.new
       load_config(args[0])
     end
 
@@ -40,7 +42,13 @@ module RSpecInteractive
 
     def load_config(name = nil)
       @config = get_config(name)
-      load @config["init_script"]
+      @config_cache.record_configuration(&rspec_configuration)
+    end
+
+    def rspec_configuration
+      proc do
+        load @config["init_script"]
+      end
     end
 
     def get_config(name = nil)
@@ -177,9 +185,6 @@ module RSpecInteractive
       # Allow wildcards.
       filenames = args.flat_map { |filename| Dir.glob(filename) }
 
-      # Store formatters, if any, set by the init script. They will be cleared by RSpec below.
-      formatters = RSpec.configuration.formatters || []
-
       # Initialize the runner. Also accessed by the signal handler above.
       # RSpecInteractive::Runner sets RSpec.world.wants_to_quit to false. The signal
       # handler sets it to true. 
@@ -194,12 +199,7 @@ module RSpecInteractive
       # Clear data from previous run.
       RSpec.clear_examples
 
-      # Formatters get cleared by clear_examples. I don't understand why but the actual run
-      # also modifies the list of formatters. Reset them to whatever the init script set.
-      if !RSpec.configuration.formatters.empty?
-        raise "internal error. expected formatters to be cleared."
-      end
-      formatters.each { |f| RSpec.configuration.add_formatter(f) }
+      @config_cache.replay_configuration
     end
   end
 end
