@@ -31,6 +31,7 @@ module RSpecInteractive
     end
 
     def start()
+      check_rails
       start_file_watcher
       load_history
       configure_auto_complete
@@ -39,6 +40,14 @@ module RSpecInteractive
     end
 
     private
+
+    def check_rails
+      if defined?(Rails)
+        if Rails.application.config.cache_classes
+          STDERR.puts "warning: Rails.application.config.cache_classes enabled. Disable to ensure code is reloaded."
+        end
+      end
+    end
 
     def load_config(name = nil)
       @config = get_config(name)
