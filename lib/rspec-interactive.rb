@@ -5,6 +5,7 @@ require 'listen'
 require 'readline'
 require 'rspec/core'
 require 'shellwords'
+require 'pry'
 
 require 'rspec-interactive/runner'
 require 'rspec-interactive/config_cache'
@@ -15,22 +16,30 @@ module RSpecInteractive
     HISTORY_FILE = '.rspec_interactive_history'.freeze
     CONFIG_FILE = '.rspec_interactive_config'.freeze
     MAX_HISTORY_ITEMS = 100
-    COMMANDS = ['help', 'rspec']
+    COMMANDS = ['help', 'rspec', 'pry', 'exit']
 
-    def initialize(args)
+    def initialize(config, stty_save)
+      @config = config
+      @stty_save = stty_save
+      @mutex = Mutex.new
+      @runner = nil
+      @config_cache = RSpecInteractive::ConfigCache.new
+    end
+
+    def self.start(args)
       if args.size > 1
         STDERR.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
         exit!(1)
       end
 
-      @stty_save = %x`stty -g`.chomp
-      @mutex = Mutex.new
-      @runner = nil
-      @config_cache = RSpecInteractive::ConfigCache.new
-      load_config(args[0])
+      config = get_config(args[0])
+      stty_save = %x`stty -g`.chomp
+
+      Console.new(config, stty_save).start
     end
 
-    def start()
+    def start
+      load_rspec_config
       check_rails
       start_file_watcher
       load_history
@@ -49,25 +58,26 @@ module RSpecInteractive
       end
     end
 
-    def load_config(name = nil)
-      @config = get_config(name)
+    def load_rspec_config
       @config_cache.record_configuration(&rspec_configuration)
     end
 
     def rspec_configuration
       proc do
-        $LOAD_PATH << '.'
-        require @config["init_script"]
+        if @config["init_script"]
+          $LOAD_PATH << '.'
+          require @config["init_script"]
+        end
       end
     end
 
-    def get_config(name = nil)
-      if !File.exists? CONFIG_FILE
-        STDERR.puts "file not found: #{CONFIG_FILE}"
-        exit!(1)
+    def self.get_config(name = nil)
+      unless File.exists? CONFIG_FILE
+        STDERR.puts "WARNING: using default config, file not found: #{CONFIG_FILE}"
+        return {}
       end
 
-      configs = JSON.parse(File.read(CONFIG_FILE))["configs"]
+      configs = JSON.parse(File.read(CONFIG_FILE))["configs"] || []
       if configs.empty?
         STDERR.puts "no configs found in: #{CONFIG_FILE}"
         exit!(1)
@@ -103,14 +113,13 @@ module RSpecInteractive
 
     def trap_interrupt
       trap('INT') do
-        @mutex.synchronize do
-          if @runner
-            @runner.quit
-          else
-            puts
-            system "stty", @stty_save
-            exit!(0)
-          end
+        if @runner
+          # We are on a different thread. There is a race here. Ignore nil.
+          @runner&.quit
+        else
+          puts
+          system "stty", @stty_save
+          exit!(0)
         end
       end
     end
@@ -168,14 +177,14 @@ module RSpecInteractive
 
         command = args[0].strip
         if COMMANDS.include?(command)
-          send command.to_sym, args[1..-1]
+          send "command_#{command}".to_sym, args[1..-1]
         else
           STDERR.puts "command not found: #{args[0]}"
         end
       end
     end
 
-    def help(args)
+    def command_help(args)
       if !args.empty?
         STDERR.puts "invalid argument(s): #{args}"
         return
@@ -184,17 +193,25 @@ module RSpecInteractive
       print "commands:\n\n"
       print "help  - print this message\n"
       print "rspec - execute the specified spec file(s), wildcards allowed\n"
+      print "pry   - start pry\n"
+      print "exit  - exit\n"
     end
 
-    def rspec(args)
-      # Setup Pry in case it is used.
-      if defined?(Pry)
-        # Prevent Pry from trapping too. It will break ctrl-c handling.
-        Pry.config.should_trap_interrupts = false
-
-        # Set Pry to use Readline, like us. This is the default anyway.
-        Pry.config.input = Readline
+    def command_rspec(args)
+      parsed_args = args.flat_map do |arg|
+        if arg.match(/[\*\?\[]/)
+          glob = Dir.glob(arg)
+          glob.empty? ? [arg] : glob
+        else
+          [arg]
+        end
       end
+
+      # Prevent Pry from trapping too. It will break ctrl-c handling.
+      Pry.config.should_trap_interrupts = false
+
+      # Set Pry to use Readline, like us. This is the default anyway.
+      Pry.config.input = Readline
 
       # If Pry does get used, it will add to history. We will clean that up after running the specs.
       history_size = Readline::HISTORY.size
@@ -202,7 +219,7 @@ module RSpecInteractive
       # Initialize the runner. Also accessed by the signal handler above.
       # RSpecInteractive::Runner sets RSpec.world.wants_to_quit to false. The signal
       # handler sets it to true. 
-      @mutex.synchronize { @runner = RSpecInteractive::Runner.new(args) }
+      @mutex.synchronize { @runner = RSpecInteractive::Runner.new(parsed_args) }
 
       # Run the specs.
       @runner.run
@@ -218,6 +235,25 @@ module RSpecInteractive
       RSpec.reset
 
       @config_cache.replay_configuration
+    end
+
+    def command_pry(args)
+      if args.size != 0
+        STDERR.puts "unexpected argument(s): #{args}"
+        return
+      end
+
+      history_size = Readline::HISTORY.size
+      Pry.config.input = Readline
+      Pry.config.should_trap_interrupts = false
+      Pry.start
+      while Readline::HISTORY.size > history_size do
+        Readline::HISTORY.pop
+      end
+    end
+
+    def command_exit(args)
+      exit!(0)
     end
   end
 end

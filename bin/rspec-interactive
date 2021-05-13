@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'rspec-interactive.rb'
+require 'rspec-interactive'
 
-RSpecInteractive::Console.new(ARGV).start()
+RSpecInteractive::Console.start(ARGV)
