@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'json'
-require 'listen'
 require 'readline'
 require 'rspec/core'
 require 'shellwords'
@@ -41,7 +40,6 @@ module RSpecInteractive
     def start
       load_rspec_config
       check_rails
-      start_file_watcher
       load_history
       configure_auto_complete
       trap_interrupt
@@ -121,13 +119,6 @@ module RSpecInteractive
           system "stty", @stty_save
           exit!(0)
         end
-      end
-    end
-
-    def start_file_watcher
-      # Only polling seems to work in Docker.
-      listener = Listen.to(*@config["watch_dirs"], only: /\.rb$/, force_polling: true) do |modified, added, removed|
-        (added + modified).each { |filename| load filename } 
       end
     end
 
