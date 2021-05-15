@@ -1,6 +1,29 @@
 require 'rspec/core'
 
 module RSpecInteractive
+  class ExampleGroupResult
+    attr_accessor :group, :success
+
+    def initialize(group, success)
+      @group = group
+      @success = success
+    end
+  end
+
+  class Result
+    attr_accessor :groups, :success, :exit_code
+
+    def initialize(groups, success, exit_code)
+      @groups = groups
+      @success = success
+      @exit_code = exit_code
+    end
+
+    def inspect(original = false)
+      original ? super() : "<RSpecInteractive::Result @success=#{@success}, @groups=[...]>"
+    end
+  end
+
   class Runner
     def initialize(args)
       RSpec.world.wants_to_quit = false
@@ -22,21 +45,26 @@ module RSpecInteractive
       example_groups = RSpec.world.ordered_example_groups
       examples_count = RSpec.world.example_count(example_groups)
 
-      success = RSpec.configuration.reporter.report(examples_count) do |reporter|
+      result = RSpec.configuration.reporter.report(examples_count) do |reporter|
         RSpec.configuration.with_suite_hooks do
           if examples_count == 0 && RSpec.configuration.fail_if_no_examples
             return RSpec.configuration.failure_exit_code
           end
 
-          result = example_groups.map do |example_group|
-            example_group.run(reporter)
+          results = example_groups.map do |example_group|
+            group_success = example_group.run(reporter)
+            ExampleGroupResult.new(example_group, group_success)
           end
 
-          result.all?
+          success = results.all?(&:success)
+          exit_code = success ? 0 : 1
+          if RSpec.world.non_example_failure
+            success = false
+            exit_code = RSpec.configuration.failure_exit_code
+          end
+          Result.new(results, success, exit_code)
         end
       end
-
-      success && !RSpec.world.non_example_failure ? 0 : RSpec.configuration.failure_exit_code
     end
 
     def quit

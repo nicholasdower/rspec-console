@@ -47,6 +47,10 @@ module RSpecInteractive
           See https://relishapp.com/rspec/rspec-core/docs/command-line.
         BANNER
 
+        command_options(
+          :keep_retval => true
+        )
+
         def process
           parsed_args = args.flat_map do |arg|
             if arg.match(/[\*\?\[]/)
@@ -59,11 +63,12 @@ module RSpecInteractive
 
           runner = RSpecInteractive::Runner.new(parsed_args)
           RSpecInteractive::Console.runner = runner
-          runner.run
+          result = runner.run
           RSpecInteractive::Console.runner = nil
           RSpec.clear_examples
           RSpec.reset
           RSpecInteractive::Console.config_cache.replay_configuration
+          result
         end
       end
 

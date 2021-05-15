@@ -6,3 +6,7 @@ gemspec
 
 gem 'rspec-core'
 gem 'pry'
+
+group :test do
+  gem 'rspec-expectations'
+end
