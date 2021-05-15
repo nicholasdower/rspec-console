@@ -19,12 +19,13 @@ module RSpec
     RESULTS_FILE = '.rspec_interactive_results'.freeze
 
     class <<self
+      attr_accessor :readline, :input_stream, :output_stream, :error_stream
       attr_accessor :config, :stty_save, :mutex, :config_cache, :runner, :results, :result, :updated_files
     end
 
-    def self.start(args)
+    def self.start(args, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
       if args.size > 1
-        STDERR.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
+        @error_stream.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
         exit!(1)
       end
 
@@ -33,6 +34,9 @@ module RSpec
       @config = get_config(args[0])
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
+      @output_stream = output_stream
+      @input_stream = input_stream
+      @error_stream = error_stream
       @config_cache = RSpec::Interactive::ConfigCache.new
 
       load_rspec_config
@@ -47,7 +51,7 @@ module RSpec
     def self.check_rails
       if defined?(::Rails)
         if ::Rails.application.config.cache_classes
-          STDERR.puts "warning: Rails.application.config.cache_classes enabled. Disable to ensure code is reloaded."
+          @error_stream.puts "warning: Rails.application.config.cache_classes enabled. Disable to ensure code is reloaded."
         end
       end
     end
@@ -61,6 +65,8 @@ module RSpec
         if !config.example_status_persistence_file_path
           config.example_status_persistence_file_path = RESULTS_FILE
         end
+       config.error_stream = @error_stream
+       config.output_stream = @output_stream
       end
     end
 
@@ -75,13 +81,13 @@ module RSpec
 
     def self.get_config(name = nil)
       unless File.exists? CONFIG_FILE
-        STDERR.puts "warning: #{CONFIG_FILE} not found, using default config"
+        @error_stream.puts "warning: #{CONFIG_FILE} not found, using default config"
         return {}
       end
 
       configs = JSON.parse(File.read(CONFIG_FILE))["configs"] || []
       if configs.empty?
-        STDERR.puts "no configs found in: #{CONFIG_FILE}"
+        @error_stream.puts "no configs found in: #{CONFIG_FILE}"
         exit!(1)
       end
 
@@ -89,7 +95,7 @@ module RSpec
       if name
         config = configs.find { |e| e["name"] == name }
         return config if config
-        STDERR.puts "invalid config: #{name}"
+        @error_stream.puts "invalid config: #{name}"
         exit!(1)
       end
 
@@ -103,13 +109,13 @@ module RSpec
         names = configs.map { |e| e["name"] }
         names[0] = "#{names[0]} (default)"
         print "Multiple simultaneous configs not yet supported. Please choose a config. #{names.join(', ')}: "
-        answer = STDIN.gets.chomp
+        answer = @input_stream.gets.chomp
         if answer.strip.empty?
           return configs[0]
         end
         config = configs.find { |e| e["name"] == answer }
         return config if config
-        STDERR.puts "invalid config: #{answer}"
+        @error_stream.puts "invalid config: #{answer}"
       end
     end
 
@@ -119,7 +125,7 @@ module RSpec
           # We are on a different thread. There is a race here. Ignore nil.
           @runner&.quit
         else
-          puts
+          @output_stream.puts
           system "stty", @stty_save
           exit!(0)
         end
@@ -142,8 +148,10 @@ module RSpec
       # Prevent Pry from trapping too. It will break ctrl-c handling.
       Pry.config.should_trap_interrupts = false
 
-      # Set Pry to use Readline. This is the default anyway.
+      # Set up IO.
       Pry.config.input = Readline
+      Pry.config.output = @output_stream
+      Readline.output = @output_stream
 
       # Use custom completer to get file completion.
       Pry.config.completer = RSpec::Interactive::InputCompleter

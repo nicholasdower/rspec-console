@@ -1,0 +1,2 @@
+#!/usr/bin/env ruby
+Dir["tests/*.rb"].each {|file| load file }

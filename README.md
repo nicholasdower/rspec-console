@@ -107,3 +107,9 @@ Exit:
 ```shell
 [9] pry(main)> exit
 ```
+
+## Running Tests
+
+```shell
+bundle exec bin/test
+```

@@ -80,7 +80,7 @@ module RSpec
 
         ::RSpec::Core::ExampleStatusPersister.persist(::RSpec.world.all_examples, path)
       rescue SystemCallError => e
-        STDERR.puts "warning: failed to write results to #{path}"
+        RSpec::Interactive.error_stream.puts "warning: failed to write results to #{path}"
       end
     end
   end
