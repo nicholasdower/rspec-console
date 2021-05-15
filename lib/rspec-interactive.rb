@@ -9,6 +9,7 @@ require 'pry'
 require 'rspec-interactive/runner'
 require 'rspec-interactive/config_cache'
 require 'rspec-interactive/input_completer'
+require 'rspec-interactive/rspec_command'
 
 module RSpec
   module Interactive
@@ -38,66 +39,6 @@ module RSpec
       start_file_watcher
       trap_interrupt
       configure_pry
-
-      Pry::Commands.create_command "rspec" do
-        description "Invoke RSpec."
-
-        banner <<-BANNER
-          Usage: rspec [arguments]
-
-          See https://relishapp.com/rspec/rspec-core/docs/command-line.
-        BANNER
-
-        command_options(
-          :keep_retval => true
-        )
-
-        def process
-          parsed_args = args.flat_map do |arg|
-            if arg.match(/[\*\?\[]/)
-              glob = Dir.glob(arg)
-              glob.empty? ? [arg] : glob
-            else
-              [arg]
-            end
-          end
-
-          RSpec::Interactive.mutex.synchronize do
-            RSpec::Interactive.updated_files.uniq.each do |filename|
-              load filename
-            end
-            RSpec::Interactive.updated_files.clear
-          end
-
-          RSpec::Interactive.runner = RSpec::Interactive::Runner.new(parsed_args)
-
-          # Stop saving history in case a new Pry session is started for debugging.
-          Pry.config.history_save = false
-
-          # Run.
-          result = RSpec::Interactive.runner.run
-          RSpec::Interactive.runner = nil
-
-          # Save results
-          RSpec::Interactive.results << result
-          RSpec::Interactive.result = result
-
-          # Reenable history
-          Pry.config.history_save = true
-
-          # Reset
-          RSpec.clear_examples
-          RSpec.reset
-          RSpec::Interactive.config_cache.replay_configuration
-
-          Object.define_method :results do RSpec::Interactive.results end
-          Object.define_method :result do RSpec::Interactive.result end
-
-          puts "Result available at `result`. Result history available at `results`."
-
-          result
-        end
-      end
 
       Pry.start
     end
