@@ -2,9 +2,9 @@
 
 require 'json'
 require 'listen'
+require 'pry'
 require 'readline'
 require 'rspec/core'
-require 'pry'
 
 require 'rspec-interactive/runner'
 require 'rspec-interactive/config_cache'
@@ -16,6 +16,7 @@ module RSpec
 
     HISTORY_FILE = '.rspec_interactive_history'.freeze
     CONFIG_FILE = '.rspec_interactive_config'.freeze
+    RESULTS_FILE = '.rspec_interactive_results'.freeze
 
     class <<self
       attr_accessor :config, :stty_save, :mutex, :config_cache, :runner, :results, :result, :updated_files
@@ -53,6 +54,14 @@ module RSpec
 
     def self.load_rspec_config
       @config_cache.record_configuration(&rspec_configuration)
+    end
+
+    def self.configure_rspec
+      RSpec.configure do |config|
+        if !config.example_status_persistence_file_path
+          config.example_status_persistence_file_path = RESULTS_FILE
+        end
+      end
     end
 
     def self.rspec_configuration

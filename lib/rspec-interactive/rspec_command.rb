@@ -37,6 +37,9 @@ module RSpec::Interactive
       # Stop saving history in case a new Pry session is started for debugging.
       Pry.config.history_save = false
 
+      # RSpec::Interactive-specific RSpec configuration
+      RSpec::Interactive.configure_rspec
+
       # Run.
       result = RSpec::Interactive.runner.run
       RSpec::Interactive.runner = nil
@@ -58,6 +61,11 @@ module RSpec::Interactive
 
       puts "Result available at `result`. Result history available at `results`."
       puts
+
+      if !RSpec::Interactive.result.success
+        puts "Rerun failures by executing the previous command with --only-failures or --next-failure."
+        puts
+      end
 
       result
     end
