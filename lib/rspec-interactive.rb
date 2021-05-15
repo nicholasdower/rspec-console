@@ -98,8 +98,8 @@ module RSpec
     end
 
     def self.check_rails
-      if defined?(Rails)
-        if Rails.application.config.cache_classes
+      if defined?(::Rails)
+        if ::Rails.application.config.cache_classes
           STDERR.puts "warning: Rails.application.config.cache_classes enabled. Disable to ensure code is reloaded."
         end
       end
