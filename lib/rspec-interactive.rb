@@ -90,6 +90,11 @@ module RSpec
           RSpec.reset
           RSpec::Interactive.config_cache.replay_configuration
 
+          Object.define_method :results do RSpec::Interactive.results end
+          Object.define_method :result do RSpec::Interactive.result end
+
+          puts "Result available at `result`. Result history available at `results`."
+
           result
         end
       end
