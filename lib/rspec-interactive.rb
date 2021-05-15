@@ -10,8 +10,8 @@ require 'rspec-interactive/runner'
 require 'rspec-interactive/config_cache'
 require 'rspec-interactive/input_completer'
 
-module RSpecInteractive
-  class Console
+module RSpec
+  module Interactive
 
     HISTORY_FILE = '.rspec_interactive_history'.freeze
     CONFIG_FILE = '.rspec_interactive_config'.freeze
@@ -30,7 +30,7 @@ module RSpecInteractive
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
       @runner = nil
-      @config_cache = RSpecInteractive::ConfigCache.new
+      @config_cache = RSpec::Interactive::ConfigCache.new
 
       load_rspec_config
       check_rails
@@ -61,13 +61,13 @@ module RSpecInteractive
             end
           end
 
-          runner = RSpecInteractive::Runner.new(parsed_args)
-          RSpecInteractive::Console.runner = runner
+          runner = RSpec::Interactive::Runner.new(parsed_args)
+          RSpec::Interactive.runner = runner
           result = runner.run
-          RSpecInteractive::Console.runner = nil
+          RSpec::Interactive.runner = nil
           RSpec.clear_examples
           RSpec.reset
-          RSpecInteractive::Console.config_cache.replay_configuration
+          RSpec::Interactive.config_cache.replay_configuration
           result
         end
       end
@@ -167,7 +167,7 @@ module RSpecInteractive
       Pry.config.input = Readline
 
       # Use custom completer to get file completion.
-      Pry.config.completer = RSpecInteractive::InputCompleter
+      Pry.config.completer = RSpec::Interactive::InputCompleter
 
       Pry.config.history_file = HISTORY_FILE
     end

@@ -4,7 +4,7 @@ require_relative "lib/rspec-interactive/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "rspec-interactive"
-  spec.version       = RSpecInteractive::VERSION
+  spec.version       = RSpec::Interactive::VERSION
   spec.authors       = ["Nick Dower"]
   spec.email         = ["nicholasdower@gmail.com"]
 

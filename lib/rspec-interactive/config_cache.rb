@@ -1,5 +1,5 @@
 # Copied from https://github.com/nviennot/rspec-console/blob/master/lib/rspec-console/config_cache.rb
-class RSpecInteractive::ConfigCache
+class RSpec::Interactive::ConfigCache
   # We have to reset the RSpec.configuration, because it contains a lot of
   # information related to the current test (what's running, what are the
   # different test results, etc).

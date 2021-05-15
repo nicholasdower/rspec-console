@@ -2,7 +2,7 @@
 
 # taken from irb
 # Implements tab completion for Readline in Pry
-module RSpecInteractive
+module RSpec::Interactive
   class InputCompleter
     NUMERIC_REGEXP = /^(-?(0[dbo])?[0-9_]+(\.[0-9_]+)?([eE]-?[0-9]+)?)\.([^.]*)$/.freeze
     ARRAY_REGEXP = /^([^\]]*\])\.([^.]*)$/.freeze
