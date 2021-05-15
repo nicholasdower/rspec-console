@@ -17,7 +17,7 @@ module RSpec
     CONFIG_FILE = '.rspec_interactive_config'.freeze
 
     class <<self
-      attr_accessor :config, :stty_save, :mutex, :runner, :config_cache
+      attr_accessor :config, :stty_save, :mutex, :runner, :config_cache, :results, :result
     end
 
     def self.start(args)
