@@ -25,6 +25,7 @@ Gem::Specification.new do |spec|
   spec.executables   << 'rspec-interactive'
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "listen"
-  spec.add_dependency "pry"
+  spec.add_dependency 'rspec-core', '~> 3.9.2', '>= 3.9.2'
+  spec.add_dependency 'listen', '~> 3.5', '>= 3.5.1'
+  spec.add_dependency 'pry', '~> 0.14.1'
 end

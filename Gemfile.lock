@@ -2,8 +2,9 @@ PATH
   remote: .
   specs:
     rspec-interactive (0.1.0)
-      listen
-      pry
+      listen (~> 3.5, >= 3.5.1)
+      pry (~> 0.14.1)
+      rspec-core (~> 3.10, >= 3.10.1)
 
 GEM
   remote: https://rubygems.org/
@@ -32,8 +33,6 @@ PLATFORMS
   x86_64-darwin-20
 
 DEPENDENCIES
-  pry
-  rspec-core
   rspec-expectations
   rspec-interactive!
 
