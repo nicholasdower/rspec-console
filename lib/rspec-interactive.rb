@@ -17,7 +17,7 @@ module RSpec
     CONFIG_FILE = '.rspec_interactive_config'.freeze
 
     class <<self
-      attr_accessor :config, :stty_save, :mutex, :config_cache, :results, :result
+      attr_accessor :config, :stty_save, :mutex, :config_cache, :runner, :results, :result, :updated_files
     end
 
     def self.start(args)
@@ -26,6 +26,8 @@ module RSpec
         exit!(1)
       end
 
+      @updated_files = []
+      @results = []
       @config = get_config(args[0])
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
@@ -60,6 +62,13 @@ module RSpec
             end
           end
 
+          RSpec::Interactive.mutex.synchronize do
+            RSpec::Interactive.updated_files.uniq.each do |filename|
+              load filename
+            end
+            RSpec::Interactive.updated_files.clear
+          end
+
           RSpec::Interactive.runner = RSpec::Interactive::Runner.new(parsed_args)
 
           # Stop saving history in case a new Pry session is started for debugging.
@@ -70,7 +79,6 @@ module RSpec
           RSpec::Interactive.runner = nil
 
           # Save results
-          RSpec::Interactive.results ||= []
           RSpec::Interactive.results << result
           RSpec::Interactive.result = result
 
@@ -152,9 +160,9 @@ module RSpec
 
     def self.trap_interrupt
       trap('INT') do
-        if RSpec::Interactive.runner
+        if @runner
           # We are on a different thread. There is a race here. Ignore nil.
-          RSpec::Interactive.runner&.quit
+          @runner&.quit
         else
           puts
           system "stty", @stty_save
@@ -168,7 +176,9 @@ module RSpec
 
       # Only polling seems to work in Docker.
       listener = Listen.to(*@config["watch_dirs"], only: /\.rb$/, force_polling: true) do |modified, added, removed|
-        (added + modified).each { |filename| load filename }
+        @mutex.synchronize do
+          @updated_files.concat(added + modified)
+        end
       end
       listener.start
     end
