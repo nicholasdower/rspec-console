@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    rspec-interactive (0.1.0)
+    rspec-interactive (0.2.0)
       listen (~> 3.5, >= 3.5.1)
       pry (~> 0.14.1)
-      rspec-core (~> 3.10, >= 3.10.1)
+      rspec-core (~> 3.9.2, >= 3.9.2)
 
 GEM
   remote: https://rubygems.org/
@@ -22,12 +22,12 @@ GEM
     rb-fsevent (0.11.0)
     rb-inotify (0.10.1)
       ffi (~> 1.0)
-    rspec-core (3.10.1)
-      rspec-support (~> 3.10.0)
-    rspec-expectations (3.10.1)
+    rspec-core (3.9.3)
+      rspec-support (~> 3.9.3)
+    rspec-expectations (3.9.4)
       diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (~> 3.10.0)
-    rspec-support (3.10.2)
+      rspec-support (~> 3.9.0)
+    rspec-support (3.9.4)
 
 PLATFORMS
   x86_64-darwin-20
