@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'json'
+require 'listen'
 require 'readline'
 require 'rspec/core'
 require 'pry'
@@ -33,6 +34,7 @@ module RSpecInteractive
 
       load_rspec_config
       check_rails
+      start_file_watcher
       trap_interrupt
       configure_pry
 
@@ -140,6 +142,16 @@ module RSpecInteractive
           exit!(0)
         end
       end
+    end
+
+    def self.start_file_watcher
+      return unless @config["watch_dirs"]
+
+      # Only polling seems to work in Docker.
+      listener = Listen.to(*@config["watch_dirs"], only: /\.rb$/, force_polling: true) do |modified, added, removed|
+        (added + modified).each { |filename| load filename }
+      end
+      listener.start
     end
 
     def self.configure_pry

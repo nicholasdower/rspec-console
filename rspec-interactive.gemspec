@@ -25,5 +25,6 @@ Gem::Specification.new do |spec|
   spec.executables   << 'rspec-interactive'
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "listen"
   spec.add_dependency "pry"
 end

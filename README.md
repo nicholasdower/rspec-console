@@ -19,10 +19,12 @@ Add a config file named `.rspec_interactive_config`:
  "configs": [
    {
      "name": "spec",
+     "watch_dirs": ["app"],
      "init_script": "spec/spec_helper.rb"
    },
    {
      "name": "spec_integration",
+     "watch_dirs": ["app"],
      "init_script": "spec_integration/integration_helper.rb"
    }
  ]
