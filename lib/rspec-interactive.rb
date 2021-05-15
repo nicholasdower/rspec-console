@@ -17,7 +17,7 @@ module RSpec
     CONFIG_FILE = '.rspec_interactive_config'.freeze
 
     class <<self
-      attr_accessor :config, :stty_save, :mutex, :runner, :config_cache, :results, :result
+      attr_accessor :config, :stty_save, :mutex, :config_cache, :results, :result
     end
 
     def self.start(args)
@@ -29,7 +29,6 @@ module RSpec
       @config = get_config(args[0])
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
-      @runner = nil
       @config_cache = RSpec::Interactive::ConfigCache.new
 
       load_rspec_config
@@ -69,6 +68,11 @@ module RSpec
           # Run.
           result = RSpec::Interactive.runner.run
           RSpec::Interactive.runner = nil
+
+          # Save results
+          RSpec::Interactive.results ||= []
+          RSpec::Interactive.results << result
+          RSpec::Interactive.result = result
 
           # Reenable history
           Pry.config.history_save = true
@@ -148,9 +152,9 @@ module RSpec
 
     def self.trap_interrupt
       trap('INT') do
-        if @runner
+        if RSpec::Interactive.runner
           # We are on a different thread. There is a race here. Ignore nil.
-          @runner&.quit
+          RSpec::Interactive.runner&.quit
         else
           puts
           system "stty", @stty_save

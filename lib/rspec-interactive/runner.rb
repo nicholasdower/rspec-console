@@ -66,9 +66,6 @@ module RSpec
             Result.new(results, success, exit_code)
           end
         end
-        RSpec::Interactive.results ||= []
-        RSpec::Interactive.results << result
-        RSpec::Interactive.result = result
         result
       end
 
