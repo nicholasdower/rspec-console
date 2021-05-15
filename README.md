@@ -2,7 +2,7 @@
 
 **WARNING: New (or maybe old by now), experimental, untested and poorly documented. Use at your own risk.**
 
-An interactive console used to run rspec. Also consider using [rspec-console](https://github.com/nviennot/rspec-console). It is a more mature alternative which didn't happen to work for me.
+An Pry console capable of running specs.
 
 ## Installation & Configuration
 
@@ -39,22 +39,70 @@ echo '.rspec_interactive_history' >> .gitignore
 
 ## Usage
 
+See more examples below.
+
+```shell
+bundle exec rspec-interactive [spec name]
+```
+
+## Example Usage In This Repo
+
 Start:
 
 ```shell
-bundle exec rspec-interactive spec
-# or
-bundle exec rspec-interactive spec_integration
+bundle exec rspec-interactive
 ```
 
-See help:
+Run a passing spec:
 
 ```shell
-> help
+[1] pry(main)> rspec examples/passing_spec.rb
 ```
 
-Run a spec:
+Inspect the result:
 
 ```shell
-> rspec spec/foo/foo_spec.rb
+[2] pry(main)> result
+```
+
+Run a failing spec:
+
+```shell
+[3] pry(main)> rspec examples/failing_spec.rb
+```
+
+Inspect result history:
+
+```shell
+[4] pry(main)> results
+```
+
+Run an example group:
+
+```shell
+[5] pry(main)> rspec examples/passing_spec.rb:4
+```
+
+Run multiple specs:
+
+```shell
+[6] pry(main)> rspec examples/passing_spec.rb examples/failing_spec.rb
+```
+
+Debug a spec (use `exit` to resume while debugging):
+
+```shell
+[7] pry(main)> rspec examples/debugged_spec.rb
+```
+
+Run multiple specs using globbing (use `exit` to resume while debugging):
+
+```shell
+[8] pry(main)> rspec examples/*_spec.rb
+```
+
+Exit:
+
+```shell
+[9] pry(main)> exit
 ```
