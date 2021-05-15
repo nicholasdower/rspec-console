@@ -59,6 +59,7 @@ module RSpecInteractive
           RSpecInteractive::Console.runner = runner
           runner.run
           RSpecInteractive::Console.runner = nil
+          RSpec.clear_examples
           RSpec.reset
           RSpecInteractive::Console.config_cache.replay_configuration
         end
