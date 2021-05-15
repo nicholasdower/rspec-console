@@ -61,13 +61,23 @@ module RSpec
             end
           end
 
-          runner = RSpec::Interactive::Runner.new(parsed_args)
-          RSpec::Interactive.runner = runner
-          result = runner.run
+          RSpec::Interactive.runner = RSpec::Interactive::Runner.new(parsed_args)
+
+          # Stop saving history in case a new Pry session is started for debugging.
+          Pry.config.history_save = false
+
+          # Run.
+          result = RSpec::Interactive.runner.run
           RSpec::Interactive.runner = nil
+
+          # Reenable history
+          Pry.config.history_save = true
+
+          # Reset
           RSpec.clear_examples
           RSpec.reset
           RSpec::Interactive.config_cache.replay_configuration
+
           result
         end
       end
