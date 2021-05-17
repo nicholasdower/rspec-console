@@ -151,7 +151,6 @@ module RSpec
       # Set up IO.
       Pry.config.input = Readline
       Pry.config.output = @output_stream
-      Readline.output = @output_stream
 
       # Use custom completer to get file completion.
       Pry.config.completer = RSpec::Interactive::InputCompleter

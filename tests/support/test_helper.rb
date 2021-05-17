@@ -78,14 +78,14 @@ end
 class FakeReadline
   attr_accessor :output, :error
 
-  def initialize
+  def initialize(output_stream)
+    @output = output_stream
     @queue = Queue.new
     @readline_signal = ConditionVariable.new
     @puts_signal = ConditionVariable.new
     @mutex = Mutex.new
     @prompted = false
     @error = nil
-    @output = nil
   end
 
   def readline(prompt = nil, something = nil)
@@ -135,7 +135,7 @@ class Test
 
   def initialize
     @output_stream = Output.new
-    @readline = FakeReadline.new
+    @readline = FakeReadline.new(@output_stream)
   end
 
   def self.test(name, &block)
