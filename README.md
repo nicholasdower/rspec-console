@@ -60,22 +60,10 @@ Run a passing spec:
 [1] pry(main)> rspec examples/passing_spec.rb
 ```
 
-Inspect the result:
-
-```shell
-[2] pry(main)> result
-```
-
 Run a failing spec:
 
 ```shell
 [3] pry(main)> rspec examples/failing_spec.rb
-```
-
-Inspect result history:
-
-```shell
-[4] pry(main)> results
 ```
 
 Run an example group:

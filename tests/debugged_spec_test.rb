@@ -30,8 +30,6 @@ Test.test "debugged spec" do
     1 example, 0 failures
 
 
-    Result available at `result`. Result history available at `results`.
-
     => <RSpec::Interactive::Result @success=true, @group_results=[...]>
     [2] pry(main)> exit
   EOF

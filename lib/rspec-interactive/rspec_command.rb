@@ -12,7 +12,7 @@ module RSpec::Interactive
     BANNER
 
     command_options(
-      :keep_retval => true
+      :keep_retval => false
     )
 
     def process
@@ -55,12 +55,6 @@ module RSpec::Interactive
       RSpec.clear_examples
       RSpec.reset
       RSpec::Interactive.config_cache.replay_configuration
-
-      Object.define_method :results do RSpec::Interactive.results end
-      Object.define_method :result do RSpec::Interactive.result end
-
-      RSpec::Interactive.output_stream.puts "Result available at `result`. Result history available at `results`."
-      RSpec::Interactive.output_stream.puts
 
       if !RSpec::Interactive.result.success
         RSpec::Interactive.output_stream.puts "Rerun failures by executing the previous command with --only-failures or --next-failure."

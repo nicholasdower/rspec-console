@@ -14,8 +14,6 @@ Test.test "passing spec" do
     2 examples, 0 failures
 
 
-    Result available at `result`. Result history available at `results`.
-
     => <RSpec::Interactive::Result @success=true, @group_results=[...]>
     [2] pry(main)> exit
   EOF
