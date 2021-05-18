@@ -11,6 +11,7 @@ Test.test "invalid config", config_path: config.path do
   EOF
   expect_result 1
 end
+
 config.close
 
 config = Tempfile.new('config')
@@ -24,3 +25,5 @@ Test.test "empty config", config_path: config.path do
   EOF
   expect_result 1
 end
+
+config.close

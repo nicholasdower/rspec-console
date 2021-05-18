@@ -72,14 +72,18 @@ module RSpec
     def self.rspec_configuration
       proc do
         if @config["init_script"]
-          $LOAD_PATH << '.'
-          require @config["init_script"]
+          load @config["init_script"]
         end
       end
     end
 
     def self.get_config(name = nil)
       unless @config_file && File.exists?(@config_file)
+        unless name.nil?
+          @error_stream.puts "invalid config: #{name}"
+          return nil
+        end
+
         @error_stream.puts "warning: config file not found, using default config" if @config_file
         return {}
       end
@@ -109,19 +113,8 @@ module RSpec
         return configs[0]
       end
 
-      # Ask the user which to use.
-      loop do
-        names = configs.map { |e| e["name"] }
-        names[0] = "#{names[0]} (default)"
-        print "Multiple simultaneous configs not yet supported. Please choose a config. #{names.join(', ')}: "
-        answer = @input_stream.gets.chomp
-        if answer.strip.empty?
-          return configs[0]
-        end
-        config = configs.find { |e| e["name"] == answer }
-        return config if config
-        @error_stream.puts "invalid config: #{answer}"
-      end
+      @error_stream.puts "multiple configurations found, you must specify which to use"
+      return nil
     end
 
     def self.trap_interrupt
