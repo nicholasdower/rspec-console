@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'json'
 require 'listen'
 require 'pry'
@@ -16,7 +14,6 @@ module RSpec
 
     HISTORY_FILE = '.rspec_interactive_history'.freeze
     CONFIG_FILE = '.rspec_interactive_config'.freeze
-    RESULTS_FILE = '.rspec_interactive_results'.freeze
 
     class <<self
       attr_accessor :readline, :input_stream, :output_stream, :error_stream
@@ -62,9 +59,6 @@ module RSpec
 
     def self.configure_rspec
       RSpec.configure do |config|
-        if !config.example_status_persistence_file_path
-          config.example_status_persistence_file_path = RESULTS_FILE
-        end
        config.error_stream = @error_stream
        config.output_stream = @output_stream
       end

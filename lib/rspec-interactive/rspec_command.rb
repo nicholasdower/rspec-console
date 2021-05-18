@@ -56,7 +56,7 @@ module RSpec::Interactive
       RSpec.reset
       RSpec::Interactive.config_cache.replay_configuration
 
-      if !RSpec::Interactive.result.success
+      if !RSpec::Interactive.result.success && ::RSpec.configuration.example_status_persistence_file_path
         RSpec::Interactive.output_stream.puts "Rerun failures by executing the previous command with --only-failures or --next-failure."
         RSpec::Interactive.output_stream.puts
       end
