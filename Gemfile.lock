@@ -2,9 +2,9 @@ PATH
   remote: .
   specs:
     rspec-interactive (0.2.0)
-      listen (~> 3.5, >= 3.5.1)
-      pry (~> 0.14.1)
-      rspec-core (~> 3.9.2, >= 3.9.2)
+      listen
+      pry
+      rspec-core
 
 GEM
   remote: https://rubygems.org/
