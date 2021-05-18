@@ -29,14 +29,12 @@ Test.test "failing spec" do
            +true
          # ./examples/failing_spec.rb:5:in `block (2 levels) in <top (required)>'
 
-
     Finished in 0 seconds (files took 0 seconds to load)
     1 example, 1 failure
 
     Failed examples:
 
     rspec ./examples/failing_spec.rb:4 # example spec fails
-
 
     Rerun failures by executing the previous command with --only-failures or --next-failure.
 

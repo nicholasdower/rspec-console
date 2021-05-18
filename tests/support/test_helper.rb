@@ -63,93 +63,108 @@ end
 
 module Readline
   class << self
-    attr_accessor :output, :fake
+    attr_accessor :error
   end
 
-  def self.output=(output_stream)
-    @fake.output = output_stream
-  end
+  @original_readline = method(:readline)
 
-  def self.readline(prompt = nil, something = nil)
-    @fake.readline(prompt, something)
-  end
-end
-
-class FakeReadline
-  attr_accessor :output, :error
-
-  def initialize(output_stream)
-    @output = output_stream
-    @queue = Queue.new
-    @readline_signal = ConditionVariable.new
-    @puts_signal = ConditionVariable.new
+  def self.reset
+    @next_response = []
+    @signal = ConditionVariable.new
     @mutex = Mutex.new
-    @prompted = false
+    @state = :waiting_for_prompt
     @error = nil
   end
 
-  def readline(prompt = nil, something = nil)
+  reset
+
+  def self.readline(prompt = nil, save_history = nil)
+    temp = nil
+    input_read = nil
     @mutex.synchronize do
-      raise "unexpected readline call after error" if @error
-      @output.print prompt
-      @prompted = true
-      @readline_signal.signal
-      @puts_signal.wait(@mutex, 1)
-      @prompted = false
-      if @queue.size != 1
+      Thread.current.kill if @error
+
+      if @state != :waiting_for_prompt
+        @error = "prompted in invalid state: #{@state}"
+        Thread.current.kill
+      end
+
+      @state = :prompted
+      @signal.signal
+      @signal.wait(@mutex, 1)
+
+      if @state != :response_available
+        @error = "sending response in invalid state: #{@state}"
+        Thread.current.kill
+      end
+      @state = :waiting_for_prompt
+
+      if @next_response.empty?
         @error = "readline response signaled with nothing to respond with"
         Thread.current.kill
       end
-      result = @queue.pop
-      @output.puts result
-      result
+      if @next_response.size > 1
+        @error = "readline response signaled with too much to respond with"
+        Thread.current.kill
+      end
+
+      temp = Tempfile.new('input')
+      temp.write("#{@next_response[0]}\n")
+      temp.rewind
+      input_read = File.new(temp.path, 'r')
+      Readline.input = input_read
+
+      @next_response.clear
+
+      @original_readline.call(prompt, save_history)
     end
+  ensure
+    temp&.close
+    input_read&.close
   end
 
-  def await_readline
+  def self.await_readline
     @mutex.synchronize do
       raise @error if @error
-      @readline_signal.wait(@mutex, 1)
+      @signal.wait(@mutex, 1)
       raise @error if @error
-      if !@prompted
+      if @state != :prompted
         @error = "timed out waiting for prompt"
         raise @error
       end
     end
   end
 
-  def puts(string)
+  def self.puts(string)
     @mutex.synchronize do
       raise @error if @error
-      @queue << string
-      @puts_signal.signal
+      if @state != :prompted
+        @error = "puts called in invalid state: #{@state}"
+        raise @error
+      end
+      @next_response << string
+      @state = :response_available
+      @signal.signal
     end
   end
 
-  def ctrl_d
+  def self.ctrl_d
     puts(nil)
   end
 end
 
 class Test
 
-  def initialize
-    @output_stream = Output.new
-    @readline = FakeReadline.new(@output_stream)
-  end
-
   def self.test(name, &block)
     Test.new.run(name, &block)
   end
 
   def run(name, &block)
+    @output_temp_file = Tempfile.new('output')
+    @output_write = File.open(@output_temp_file.path, 'w')
+
     @interactive_thread = Thread.start do
-      begin
-        Readline.fake = @readline
-        RSpec::Interactive.start(ARGV, input_stream: STDIN, output_stream: @output_stream, error_stream: @output_stream)
-      ensure
-        Readline.fake = nil
-      end
+      RSpec::Interactive.start(ARGV, input_stream: STDIN, output_stream: @output_write, error_stream: @output_write)
     end
 
     begin
@@ -161,14 +176,18 @@ class Test
 
     await_termination
 
-    if @readline.error
+    if Readline.error
       failed = true
-      Ansi.puts :red, "failed: #{name}\n#{@readline.error}"
+      Ansi.puts :red, "failed: #{name}\n#{Readline.error}"
     end
 
     if !failed
       Ansi.puts :green, "passed: #{name}"
     end
+  ensure
+    @output_write.close
+    @output_temp_file.close
+    Readline.reset
   end
 
   def await_termination
@@ -181,19 +200,16 @@ class Test
   end
 
   def await_prompt
-    @readline.await_readline
+    Readline.await_readline
   end
 
   def input(string)
-    @readline.puts(string)
+    Readline.puts(string)
   end
 
   def output
-    @output_stream.string
-  end
-
-  def next_output
-    @utput_stream.next_string
+    @output_temp_file.rewind
+    File.read(@output_temp_file.path).gsub("\e[0G", "")
   end
 
   def expect_output(expected)
