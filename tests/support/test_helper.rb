@@ -109,9 +109,16 @@ module Readline
         Thread.current.kill
       end
 
+      response = @next_response[0]
+      @next_response.clear
+
       temp = Tempfile.new('input')
-      temp.write("#{@next_response[0]}\n")
-      temp.rewind
+
+      unless response.nil?
+        temp.write("#{response}\n")
+        temp.rewind
+      end
+
       input_read = File.new(temp.path, 'r')
       Readline.input = input_read
 
@@ -230,6 +237,10 @@ class Test
 
   def input(string)
     Readline.puts(string)
+  end
+
+  def ctrl_d
+    Readline.ctrl_d
   end
 
   def output
