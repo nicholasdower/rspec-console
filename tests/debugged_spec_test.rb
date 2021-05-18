@@ -29,7 +29,10 @@ Test.test "debugged spec" do
     Finished in 0 seconds (files took 0 seconds to load)
     1 example, 0 failures
 
-    => <RSpec::Interactive::Result @success=true, @group_results=[...]>
     [2] pry(main)> exit
+  EOF
+
+  expect_history <<~EOF
+    rspec examples/debugged_spec.rb
   EOF
 end

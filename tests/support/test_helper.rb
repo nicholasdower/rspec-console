@@ -156,38 +156,61 @@ end
 
 class Test
 
-  def self.test(name, &block)
-    Test.new.run(name, &block)
+  def self.test(name, config_path: nil, &block)
+    Test.new.run(name, config_path, &block)
   end
 
-  def run(name, &block)
+  def run(name, config_path, &block)
+    puts "running: #{name}"
+
     @output_temp_file = Tempfile.new('output')
     @output_write = File.open(@output_temp_file.path, 'w')
 
+    @error_temp_file = Tempfile.new('error')
+    @error_write = File.open(@error_temp_file.path, 'w')
+
+    @history_temp_file = Tempfile.new('history')
+
     @interactive_thread = Thread.start do
-      RSpec::Interactive.start(ARGV, input_stream: STDIN, output_stream: @output_write, error_stream: @output_write)
+      @result = RSpec::Interactive.start(
+        ARGV,
+        config_file: config_path,
+        history_file: @history_temp_file.path,
+        input_stream: STDIN,
+        output_stream: @output_write,
+        error_stream: @error_write)
     end
 
     begin
       instance_eval &block
     rescue Exception => e
       failed = true
-      Ansi.puts :red, "failed: #{name}\n#{e.message}"
+      STDERR.puts e.message
+      e.backtrace[0..5].each { |line| STDERR.puts "  #{line}" }
     end
 
     await_termination
 
     if Readline.error
       failed = true
-      Ansi.puts :red, "failed: #{name}\n#{Readline.error}"
+      STDOUT.puts Readline.error
     end
 
-    if !failed
+    if failed
+      Ansi.puts :red, "failed: #{name}"
+    else
       Ansi.puts :green, "passed: #{name}"
     end
+    puts
   ensure
     @output_write.close
     @output_temp_file.close
+
+    @error_write.close
+    @error_temp_file.close
+
+    @history_temp_file.close
+
     Readline.reset
   end
 
@@ -213,9 +236,35 @@ class Test
     File.read(@output_temp_file.path).gsub("\e[0G", "")
   end
 
+  def error_output
+    @error_write.flush
+    @error_temp_file.rewind
+    File.read(@error_temp_file.path)
+  end
+
+  def expect_history(expected)
+    @history_temp_file.rewind
+    history = File.read(@history_temp_file.path)
+    if expected != history
+      raise "unexpected history:\n  expected: #{expected.inspect}\n  actual:   #{history.inspect}"
+    end
+  end
+
   def expect_output(expected)
     if expected != output
       raise "unexpected output:\n  expected: #{expected.inspect}\n  actual:   #{output.inspect}"
+    end
+  end
+
+  def expect_error_output(expected)
+    if expected != error_output
+      raise "unexpected error output:\n  expected: #{expected.inspect}\n  actual:   #{error_output.inspect}"
+    end
+  end
+
+  def expect_result(expected)
+    if expected != @result
+      raise "unexpected result:\n  expected: #{expected.inspect}\n  actual:   #{@result.inspect}"
     end
   end
 end

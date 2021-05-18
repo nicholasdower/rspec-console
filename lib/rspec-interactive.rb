@@ -12,29 +12,33 @@ require 'rspec-interactive/rspec_command'
 module RSpec
   module Interactive
 
-    HISTORY_FILE = '.rspec_interactive_history'.freeze
-    CONFIG_FILE = '.rspec_interactive_config'.freeze
+    DEFAULT_HISTORY_FILE = '.rspec_interactive_history'.freeze
+    DEFAULT_CONFIG_FILE = '.rspec_interactive_config'.freeze
 
     class <<self
       attr_accessor :readline, :input_stream, :output_stream, :error_stream
-      attr_accessor :config, :stty_save, :mutex, :config_cache, :runner, :results, :result, :updated_files
+      attr_accessor :config, :mutex, :config_cache, :runner, :results, :result, :updated_files
     end
 
-    def self.start(args, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
+    def self.start(args, config_file: DEFAULT_CONFIG_FILE, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
       if args.size > 1
         @error_stream.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
-        exit!(1)
+        return 1
       end
 
+      @config_file = config_file
+      @history_file = history_file
       @updated_files = []
       @results = []
-      @config = get_config(args[0])
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
       @output_stream = output_stream
       @input_stream = input_stream
       @error_stream = error_stream
       @config_cache = RSpec::Interactive::ConfigCache.new
+
+      @config = get_config(args[0])
+      return 1 unless @config
 
       load_rspec_config
       check_rails
@@ -43,6 +47,7 @@ module RSpec
       configure_pry
 
       Pry.start
+      0
     end
 
     def self.check_rails
@@ -74,15 +79,21 @@ module RSpec
     end
 
     def self.get_config(name = nil)
-      unless File.exists? CONFIG_FILE
-        @error_stream.puts "warning: #{CONFIG_FILE} not found, using default config"
+      unless @config_file && File.exists?(@config_file)
+        @error_stream.puts "warning: config file not found, using default config" if @config_file
         return {}
       end
 
-      configs = JSON.parse(File.read(CONFIG_FILE))["configs"] || []
+      begin
+        configs = JSON.parse(File.read(@config_file))["configs"] || []
+      rescue JSON::ParserError => e
+        @error_stream.puts "failed to parse config file"
+        return nil
+      end
+
       if configs.empty?
-        @error_stream.puts "no configs found in: #{CONFIG_FILE}"
-        exit!(1)
+        @error_stream.puts "no configs found in config file"
+        return nil
       end
 
       # If a specific config was specified, use it.
@@ -90,7 +101,7 @@ module RSpec
         config = configs.find { |e| e["name"] == name }
         return config if config
         @error_stream.puts "invalid config: #{name}"
-        exit!(1)
+        return nil
       end
 
       # If there is only one, use it.
@@ -151,7 +162,7 @@ module RSpec
       # Use custom completer to get file completion.
       Pry.config.completer = RSpec::Interactive::InputCompleter
 
-      Pry.config.history_file = HISTORY_FILE
+      Pry.config.history_file = @history_file
     end
   end
 end

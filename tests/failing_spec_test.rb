@@ -36,9 +36,6 @@ Test.test "failing spec" do
 
     rspec ./examples/failing_spec.rb:4 # example spec fails
 
-    Rerun failures by executing the previous command with --only-failures or --next-failure.
-
-    => <RSpec::Interactive::Result @success=false, @group_results=[...]>
     [2] pry(main)> exit
   EOF
 end

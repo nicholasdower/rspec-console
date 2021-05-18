@@ -13,7 +13,6 @@ Test.test "passing spec" do
     Finished in 0 seconds (files took 0 seconds to load)
     2 examples, 0 failures
 
-    => <RSpec::Interactive::Result @success=true, @group_results=[...]>
     [2] pry(main)> exit
   EOF
 end
