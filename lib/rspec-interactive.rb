@@ -47,6 +47,7 @@ module RSpec
       configure_pry
 
       Pry.start
+      @listener.stop if @listener
       0
     end
 
@@ -134,12 +135,12 @@ module RSpec
       return unless @config["watch_dirs"]
 
       # Only polling seems to work in Docker.
-      listener = Listen.to(*@config["watch_dirs"], only: /\.rb$/, force_polling: true) do |modified, added, removed|
+      @listener = Listen.to(*@config["watch_dirs"], only: /\.rb$/, force_polling: true) do |modified, added, removed|
         @mutex.synchronize do
           @updated_files.concat(added + modified)
         end
       end
-      listener.start
+      @listener.start
     end
 
     def self.configure_pry
