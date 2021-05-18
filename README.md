@@ -35,7 +35,6 @@ Update `.gitignore`
 
 ```shell
 echo '.rspec_interactive_history' >> .gitignore
-echo '.rspec_interactive_results' >> .gitignore
 ```
 
 ## Usage
