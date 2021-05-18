@@ -1,7 +1,5 @@
 # RSpec Interactive
 
-**WARNING: New (or maybe old by now), experimental, untested and poorly documented. Use at your own risk.**
-
 An Pry console capable of running specs.
 
 ## Installation & Configuration
