@@ -4,11 +4,12 @@ require 'pry'
 require 'readline'
 require 'rspec/core'
 require 'rspec-interactive'
-require "timeout"
+require 'timeout'
+require 'time'
 require_relative 'ansi'
 
 class Time
-  @start = Time.at(Time.now.to_i)
+  @start = Time.parse('1982-08-05 07:21:00 -0500')
 
   def self.now
    @start
