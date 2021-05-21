@@ -17,7 +17,7 @@ module RSpec
 
     class <<self
       attr_accessor :readline, :input_stream, :output_stream, :error_stream
-      attr_accessor :config, :mutex, :config_cache, :runner, :results, :result, :updated_files
+      attr_accessor :config, :mutex, :config_cache, :runner, :updated_files
     end
 
     def self.start(args, config_file: DEFAULT_CONFIG_FILE, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
@@ -29,7 +29,6 @@ module RSpec
       @config_file = config_file
       @history_file = history_file
       @updated_files = []
-      @results = []
       @stty_save = %x`stty -g`.chomp
       @mutex = Mutex.new
       @output_stream = output_stream

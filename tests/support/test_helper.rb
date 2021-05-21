@@ -263,20 +263,20 @@ class Test
   end
 
   def expect_output(expected)
-    if expected != output
-      raise "unexpected output:\n  expected: #{expected.inspect}\n  actual:   #{output.inspect}"
-    end
+    expect_equal("output", output, expected)
   end
 
   def expect_error_output(expected)
-    if expected != error_output
-      raise "unexpected error output:\n  expected: #{expected.inspect}\n  actual:   #{error_output.inspect}"
-    end
+    expect_equal("error output", error_output, expected)
   end
 
   def expect_result(expected)
-    if expected != @result
-      raise "unexpected result:\n  expected: #{expected.inspect}\n  actual:   #{@result.inspect}"
+    expect_equal("result", @result, expected)
+  end
+
+  def expect_equal(name, actual, expected)
+    if expected != actual
+      raise "unexpected #{name}:\n  expected: #{expected.inspect}\n  actual:   #{actual.inspect}"
     end
   end
 end

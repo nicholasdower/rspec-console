@@ -41,12 +41,8 @@ module RSpec::Interactive
       RSpec::Interactive.configure_rspec
 
       # Run.
-      result = RSpec::Interactive.runner.run
+      exit_code = RSpec::Interactive.runner.run
       RSpec::Interactive.runner = nil
-
-      # Save results
-      RSpec::Interactive.results << result
-      RSpec::Interactive.result = result
 
       # Reenable history
       Pry.config.history_save = true
@@ -56,12 +52,10 @@ module RSpec::Interactive
       RSpec.reset
       RSpec::Interactive.config_cache.replay_configuration
 
-      if !RSpec::Interactive.result.success && ::RSpec.configuration.example_status_persistence_file_path
+      if exit_code != 0 && ::RSpec.configuration.example_status_persistence_file_path
         RSpec::Interactive.output_stream.puts "Rerun failures by executing the previous command with --only-failures or --next-failure."
         RSpec::Interactive.output_stream.puts
       end
-
-      result
     end
 
     Pry::Commands.add_command(::RSpec::Interactive::RSpecCommand)
