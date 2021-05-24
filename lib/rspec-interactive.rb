@@ -165,7 +165,17 @@ module RSpec
 
       @mutex.synchronize do
         @updated_files.uniq.each do |filename|
+          @output_stream.puts "modified: #{filename}"
+          trace = TracePoint.new(:class) do |tp|
+            if defined?(ApplicationRecord) && tp.self < ApplicationRecord
+              @output_stream.puts "clearing ActiveRecord validators via #{tp.self}.clear_validators!"
+              tp.self.clear_validators!
+            end
+          end
+          trace.enable
           load filename
+          trace.disable
+          @output_stream.puts
         end
         @updated_files.clear
       end
