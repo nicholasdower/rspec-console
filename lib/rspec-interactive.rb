@@ -15,11 +15,6 @@ module RSpec
     DEFAULT_HISTORY_FILE = '.rspec_interactive_history'.freeze
     DEFAULT_CONFIG_FILE = '.rspec_interactive_config'.freeze
 
-    class <<self
-      attr_accessor :readline, :input_stream, :output_stream, :error_stream
-      attr_accessor :config, :mutex, :config_cache, :runner, :updated_files
-    end
-
     def self.start(args, config_file: DEFAULT_CONFIG_FILE, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
       if args.size > 1
         @error_stream.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
@@ -156,6 +151,44 @@ module RSpec
       Pry.config.completer = RSpec::Interactive::InputCompleter
 
       Pry.config.history_file = @history_file
+    end
+
+    def self.rspec(args)
+      parsed_args = args.flat_map do |arg|
+        if arg.match(/[\*\?\[]/)
+          glob = Dir.glob(arg)
+          glob.empty? ? [arg] : glob
+        else
+          [arg]
+        end
+      end
+
+      @mutex.synchronize do
+        @updated_files.uniq.each do |filename|
+          load filename
+        end
+        @updated_files.clear
+      end
+
+      @runner = RSpec::Interactive::Runner.new(parsed_args)
+
+      # Stop saving history in case a new Pry session is started for debugging.
+      Pry.config.history_save = false
+
+      # RSpec::Interactive-specific RSpec configuration
+      configure_rspec
+
+      # Run.
+      exit_code = @runner.run
+      @runner = nil
+
+      # Reenable history
+      Pry.config.history_save = true
+
+      # Reset
+      RSpec.clear_examples
+      RSpec.reset
+      @config_cache.replay_configuration
     end
   end
 end

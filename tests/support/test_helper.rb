@@ -179,13 +179,18 @@ class Test
     @history_temp_file = Tempfile.new('history')
 
     @interactive_thread = Thread.start do
-      @result = RSpec::Interactive.start(
-        args,
-        config_file: config_path,
-        history_file: @history_temp_file.path,
-        input_stream: STDIN,
-        output_stream: @output_write,
-        error_stream: @error_write)
+      begin
+        @result = RSpec::Interactive.start(
+          args,
+          config_file: config_path,
+          history_file: @history_temp_file.path,
+          input_stream: STDIN,
+          output_stream: @output_write,
+          error_stream: @error_write)
+      ensure
+        RSpec.clear_examples
+        RSpec.reset
+      end
     end
 
     begin

@@ -23,7 +23,7 @@ module RSpec
         example_groups = ::RSpec.world.ordered_example_groups
         examples_count = ::RSpec.world.example_count(example_groups)
 
-        ::RSpec.configuration.reporter.report(examples_count) do |reporter|
+        exit_code = ::RSpec.configuration.reporter.report(examples_count) do |reporter|
           ::RSpec.configuration.with_suite_hooks do
             if examples_count == 0 && ::RSpec.configuration.fail_if_no_examples
               return ::RSpec.configuration.failure_exit_code
@@ -43,6 +43,13 @@ module RSpec
             exit_code
           end
         end
+
+        if exit_code != 0 && ::RSpec.configuration.example_status_persistence_file_path
+          ::RSpec.configuration.output_stream.puts "Rerun failures by executing the previous command with --only-failures or --next-failure."
+          ::RSpec.configuration.output_stream.puts
+        end
+
+        exit_code
       end
 
       def quit
@@ -55,7 +62,7 @@ module RSpec
 
         ::RSpec::Core::ExampleStatusPersister.persist(::RSpec.world.all_examples, path)
       rescue SystemCallError => e
-        RSpec::Interactive.error_stream.puts "warning: failed to write results to #{path}"
+        ::RSpec.configuration.error_stream.puts "warning: failed to write results to #{path}"
       end
     end
   end
