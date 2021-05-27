@@ -1,0 +1,12 @@
+test --next-failure
+test ctrl-c while tests running
+test listen
+test init script being loaded
+test init script RSpec config being used on each run
+watch command
+test up arrow
+test ctrl-c
+Break test_helper up into multiple files
+A reload method which can be set in the config file. Default can reload FactoryBot, Rails, and load any changed files.
+Add a note to the README about FactoryBot. Files can't be reloaded. Don't include in watch. Use reset method.
+Add a flag used to make startup interactive instead of in the background. Useful when debuggin a startup issue.
