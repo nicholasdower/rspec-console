@@ -5,7 +5,8 @@ require 'readline'
 require 'rspec/core'
 
 require 'rspec-interactive/runner'
-require 'rspec-interactive/config_cache'
+require 'rspec-interactive/config'
+require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/input_completer'
 require 'rspec-interactive/rspec_command'
 
@@ -13,15 +14,16 @@ module RSpec
   module Interactive
 
     DEFAULT_HISTORY_FILE = '.rspec_interactive_history'.freeze
-    DEFAULT_CONFIG_FILE = '.rspec_interactive_config'.freeze
 
-    def self.start(args, config_file: DEFAULT_CONFIG_FILE, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
-      if args.size > 1
-        @error_stream.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
-        return 1
-      end
+    class << self
+      attr_accessor :configuration
+    end
 
-      @config_file = config_file
+    def self.configure(&block)
+      block.call(@configuration)
+    end
+
+    def self.start(config_file: nil, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
       @history_file = history_file
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
@@ -31,10 +33,9 @@ module RSpec
       @error_stream = error_stream
       @config_cache = RSpec::Interactive::ConfigCache.new
 
-      @config = get_config(args[0])
-      return 1 unless @config
+      @configuration = Configuration.new
+      @config_cache.record_configuration { load config_file if config_file }
 
-      load_rspec_config
       check_rails
       start_file_watcher
       trap_interrupt
@@ -53,63 +54,11 @@ module RSpec
       end
     end
 
-    def self.load_rspec_config
-      @config_cache.record_configuration(&rspec_configuration)
-    end
-
     def self.configure_rspec
       RSpec.configure do |config|
        config.error_stream = @error_stream
        config.output_stream = @output_stream
       end
-    end
-
-    def self.rspec_configuration
-      proc do
-        if @config["init_script"]
-          load @config["init_script"]
-        end
-      end
-    end
-
-    def self.get_config(name = nil)
-      unless @config_file && File.exists?(@config_file)
-        unless name.nil?
-          @error_stream.puts "invalid config: #{name}"
-          return nil
-        end
-
-        @error_stream.puts "warning: config file not found, using default config" if @config_file
-        return {}
-      end
-
-      begin
-        configs = JSON.parse(File.read(@config_file))["configs"] || []
-      rescue JSON::ParserError => e
-        @error_stream.puts "failed to parse config file"
-        return nil
-      end
-
-      if configs.empty?
-        @error_stream.puts "no configs found in config file"
-        return nil
-      end
-
-      # If a specific config was specified, use it.
-      if name
-        config = configs.find { |e| e["name"] == name }
-        return config if config
-        @error_stream.puts "invalid config: #{name}"
-        return nil
-      end
-
-      # If there is only one, use it.
-      if configs.size == 1
-        return configs[0]
-      end
-
-      @error_stream.puts "multiple configurations found, you must specify which to use"
-      return nil
     end
 
     def self.trap_interrupt
@@ -126,10 +75,10 @@ module RSpec
     end
 
     def self.start_file_watcher
-      return unless @config["watch_dirs"]
+      return if @configuration.watch_dirs.empty?
 
       # Only polling seems to work in Docker.
-      @listener = Listen.to(*@config["watch_dirs"], only: /\.rb$/, force_polling: true) do |modified, added, removed|
+      @listener = Listen.to(*@configuration.watch_dirs, only: /\.rb$/, force_polling: true) do |modified, added, removed|
         @mutex.synchronize do
           @updated_files.concat(added + modified)
         end

@@ -163,11 +163,11 @@ end
 
 class Test
 
-  def self.test(name, args: [], config_path: nil, &block)
-    Test.new.run(name, args, config_path, &block)
+  def self.test(name, config_path: nil, &block)
+    Test.new.run(name, config_path, &block)
   end
 
-  def run(name, args, config_path, &block)
+  def run(name, config_path, &block)
     puts "running: #{name}"
 
     @output_temp_file = Tempfile.new('output')
@@ -181,7 +181,6 @@ class Test
     @interactive_thread = Thread.start do
       begin
         @result = RSpec::Interactive.start(
-          args,
           config_file: config_path,
           history_file: @history_temp_file.path,
           input_stream: STDIN,

@@ -5,22 +5,9 @@ RSpec.configuration.backtrace_inclusion_patterns = [ /examples\/failing_spec.rb/
 
 examples = Tempfile.new('examples')
 
-init = Tempfile.new('init')
-init.write <<~EOF
-  RSpec.configuration.example_status_persistence_file_path = "#{examples.path}"
-EOF
-init.rewind
-
 config = Tempfile.new('config')
 config.write <<~EOF
-  {
-    "configs": [
-      {
-        "name": "some_config",
-        "init_script": "#{init.path}"
-      }
-    ]
-  }
+  RSpec.configuration.example_status_persistence_file_path = "#{examples.path}"
 EOF
 config.rewind
 
@@ -63,6 +50,5 @@ Test.test "failing spec with example file", config_path: config.path do
   EOF
 end
 
-init.close
-examples.close
 config.close
+examples.close
