@@ -10,23 +10,17 @@ Install:
 gem 'rspec-interactive'
 ```
 
-Add a config file named `.rspec_interactive_config`:
+Add a config file which configures RSpec and RSpec::Interactive, for instance `spec/rspec_interactive.rb`:
 
-```json
-{
- "configs": [
-   {
-     "name": "spec",
-     "watch_dirs": ["app"],
-     "init_script": "spec/spec_helper.rb"
-   },
-   {
-     "name": "spec_integration",
-     "watch_dirs": ["app"],
-     "init_script": "spec_integration/integration_helper.rb"
-   }
- ]
-}
+```ruby
+load 'spec/spec_helper.rb'
+
+RSpec::Interactive.configure do |config|
+  config.watch_dirs += ["app", "lib", "config"]
+  config.on_class_load do |clazz|
+    clazz.clear_validators! if clazz < ApplicationRecord
+  end
+end
 ```
 
 Update `.gitignore`
@@ -40,7 +34,7 @@ echo '.rspec_interactive_history' >> .gitignore
 See more examples below.
 
 ```shell
-bundle exec rspec-interactive [spec name]
+bundle exec rspec-interactive spec/rspec_interactive.rb
 ```
 
 ## Example Usage In This Repo
