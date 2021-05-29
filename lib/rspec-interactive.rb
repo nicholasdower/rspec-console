@@ -116,10 +116,7 @@ module RSpec
         @updated_files.uniq.each do |filename|
           @output_stream.puts "modified: #{filename}"
           trace = TracePoint.new(:class) do |tp|
-            if defined?(ApplicationRecord) && tp.self < ApplicationRecord
-              @output_stream.puts "clearing ActiveRecord validators via #{tp.self}.clear_validators!"
-              tp.self.clear_validators!
-            end
+            @configuration.on_class_load.call(tp.self)
           end
           trace.enable
           load filename
