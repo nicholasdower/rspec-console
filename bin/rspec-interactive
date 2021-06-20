@@ -1,14 +1,21 @@
 #!/usr/bin/env ruby
 
+require 'optparse'
 require 'rspec-interactive'
+require 'shellwords'
 
-if ARGV.size == 0
-  RSpec::Interactive.start
-elsif ARGV.size == 1
-  RSpec::Interactive.start(config_file: ARGV[0])
-else
-  STDERR.puts "expected 0 or 1 argument, got: #{args.join(', ')}"
-  STDERR.puts ''
-  STDOUT.puts 'usage: rspec-interactive [config-file]'
-  exit 1
-end
+@options = {}
+parser = OptionParser.new do |opts|
+  opts.banner = "Starts an interactive RSpec shell.\n\n"\
+    "Usage: bundle exec rspec-interactive [-c config-file] <initial-rspec-args>"
+
+  opts.on("-c", "--config <config-file>", String, "Optional. Path to the RSpec Interactive config file.") do |config_file|
+    @options[:config_file] = config_file
+  end
+
+  opts.on("-r", "--initial-rspec-args <initial-rspec-args>", String, "Optional. Arguments to pass to an initial invocation of RSpec.") do |initial_rspec_args|
+    @options[:initial_rspec_args] = Shellwords.split(initial_rspec_args)
+  end
+end.parse!
+
+RSpec::Interactive.start(config_file: @options[:config_file], initial_rspec_args: @options[:initial_rspec_args])

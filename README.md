@@ -37,10 +37,10 @@ echo '.rspec_interactive_history' >> .gitignore
 
 ## Usage
 
-See more examples below.
+Optionally, specify a config file with `--config <config-file>`. Optionally, specify arguments to an initial RSpec invocation with `--initial-rspec-args <initial-rspec-args>`.
 
 ```shell
-bundle exec rspec-interactive spec/rspec_interactive.rb
+bundle exec rspec-interactive [--config <config-file>] [--initial-rspec-args <initial-rspec-args>]
 ```
 
 ## Example Usage In This Repo
@@ -49,6 +49,12 @@ Start:
 
 ```shell
 bundle exec rspec-interactive
+```
+
+Start with an initial RSpec invocation:
+
+```shell
+bundle exec rspec-interactive --initial-rspec-args examples/passing_spec.rb
 ```
 
 Run a passing spec:
