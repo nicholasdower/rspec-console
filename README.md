@@ -13,8 +13,6 @@ gem 'rspec-interactive'
 Add a config file which configures RSpec and RSpec::Interactive, for example `spec/rspec_interactive.rb`:
 
 ```ruby
-load 'spec/spec_helper.rb'
-
 RSpec::Interactive.configure do |config|
   # Directories to watch for file changes. When a file changes, it will be reloaded like `load 'path/to/file'`.
   config.watch_dirs += ["app", "lib", "config"]
