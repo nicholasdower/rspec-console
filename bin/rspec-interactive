@@ -2,7 +2,6 @@
 
 require 'optparse'
 require 'rspec-interactive'
-require 'shellwords'
 
 @options = {}
 parser = OptionParser.new do |opts|
@@ -14,7 +13,7 @@ parser = OptionParser.new do |opts|
   end
 
   opts.on("-r", "--initial-rspec-args <initial-rspec-args>", String, "Optional. Arguments to pass to an initial invocation of RSpec.") do |initial_rspec_args|
-    @options[:initial_rspec_args] = Shellwords.split(initial_rspec_args)
+    @options[:initial_rspec_args] = initial_rspec_args
   end
 end.parse!
 

@@ -3,6 +3,7 @@ require 'listen'
 require 'pry'
 require 'readline'
 require 'rspec/core'
+require 'shellwords'
 
 require 'rspec-interactive/runner'
 require 'rspec-interactive/config'
@@ -44,7 +45,8 @@ module RSpec
       configure_pry
 
       if initial_rspec_args
-        rspec initial_rspec_args
+        open(@history_file, 'a') { |f| f.puts "rspec #{initial_rspec_args.strip}" }
+        rspec Shellwords.split(initial_rspec_args)
       end
 
       Pry.start
