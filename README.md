@@ -10,13 +10,21 @@ Install:
 gem 'rspec-interactive'
 ```
 
-Add a config file which configures RSpec and RSpec::Interactive, for instance `spec/rspec_interactive.rb`:
+Add a config file which configures RSpec and RSpec::Interactive, for example `spec/rspec_interactive.rb`:
 
 ```ruby
 load 'spec/spec_helper.rb'
 
 RSpec::Interactive.configure do |config|
+  # Directories to watch for file changes. When a file changes, it will be reloaded like `load 'path/to/file'`.
   config.watch_dirs += ["app", "lib", "config"]
+
+  # This block is invoked on startup. RSpec configuration must happen here so that it can be reloaded before each test run.
+  config.configure_rspec do
+    require './spec/spec_helper.rb'
+  end
+
+  # Invoked whenever a class is loaded due to a file change in one of the watch_dirs.
   config.on_class_load do |clazz|
     clazz.clear_validators! if clazz < ApplicationRecord
   end

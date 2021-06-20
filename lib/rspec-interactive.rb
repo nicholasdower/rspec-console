@@ -34,7 +34,9 @@ module RSpec
       @config_cache = RSpec::Interactive::ConfigCache.new
 
       @configuration = Configuration.new
-      @config_cache.record_configuration { load config_file if config_file }
+      load config_file if config_file
+
+      @config_cache.record_configuration { @configuration.configure_rspec.call }
 
       check_rails
       start_file_watcher
