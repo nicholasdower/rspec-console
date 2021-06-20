@@ -98,3 +98,9 @@ Exit:
 ```shell
 bundle exec bin/test
 ```
+
+## Releasing
+
+```shell
+./scripts/release.sh <version>
+```
