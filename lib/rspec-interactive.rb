@@ -37,12 +37,14 @@ module RSpec
       @configuration = Configuration.new
       load config_file if config_file
 
-      @config_cache.record_configuration { @configuration.configure_rspec.call }
-
       check_rails
       start_file_watcher
       trap_interrupt
       configure_pry
+
+      @init_thread = Thread.start {
+        @config_cache.record_configuration { @configuration.configure_rspec.call }
+      }
 
       if initial_rspec_args
         open(@history_file, 'a') { |f| f.puts "rspec #{initial_rspec_args.strip}" }
@@ -111,6 +113,11 @@ module RSpec
     end
 
     def self.rspec(args)
+      if @init_thread&.alive?
+        @init_thread.join
+        @init_thread = nil
+      end
+
       parsed_args = args.flat_map do |arg|
         if arg.match(/[\*\?\[]/)
           glob = Dir.glob(arg)
