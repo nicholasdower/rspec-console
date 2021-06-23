@@ -23,3 +23,4 @@ gem build
 gem push rspec-interactive-$NEW_VERSION.gem
 bundle install
 git commit -a -m "v$NEW_VERSION Release"
+open "https://github.com/nicholasdower/rspec-interactive/releases/new?title=v$NEW_VERSION%20Release&tag=v$NEW_VERSION&target=$(git rev-parse HEAD)"
