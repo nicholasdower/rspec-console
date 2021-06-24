@@ -26,6 +26,13 @@ RSpec::Interactive.configure do |config|
   config.on_class_load do |clazz|
     clazz.clear_validators! if clazz < ApplicationRecord
   end
+
+  # Invoked before each invocation of RSpec. Can also be manually invoked by typing `refresh` in the console.
+  # Any modified/added files will be loaded via `load` before invoking.
+  config.refresh do
+    FactoryBot.reload
+    Rails.application.reloader.reload!
+  end
 end
 ```
 

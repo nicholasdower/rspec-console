@@ -9,6 +9,7 @@ require 'rspec-interactive/runner'
 require 'rspec-interactive/config'
 require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/input_completer'
+require 'rspec-interactive/refresh_command'
 require 'rspec-interactive/rspec_command'
 
 module RSpec
@@ -88,7 +89,7 @@ module RSpec
       return if @configuration.watch_dirs.empty?
 
       # Only polling seems to work in Docker.
-      @listener = Listen.to(*@configuration.watch_dirs, only: /\.rb$/, force_polling: true) do |modified, added, removed|
+      @listener = Listen.to(*@configuration.watch_dirs, only: /\.rb$/, force_polling: true) do |modified, added|
         @mutex.synchronize do
           @updated_files.concat(added + modified)
         end
@@ -112,6 +113,23 @@ module RSpec
       Pry.config.history_file = @history_file
     end
 
+    def self.refresh
+      @mutex.synchronize do
+        @updated_files.uniq.each do |filename|
+          @output_stream.puts "changed: #{filename}"
+          trace = TracePoint.new(:class) do |tp|
+            @configuration.on_class_load.call(tp.self)
+          end
+          trace.enable
+          load filename
+          trace.disable
+          @output_stream.puts
+        end
+        @updated_files.clear
+      end
+      @configuration.refresh.call
+    end
+
     def self.rspec(args)
       if @init_thread&.alive?
         @init_thread.join
@@ -127,19 +145,7 @@ module RSpec
         end
       end
 
-      @mutex.synchronize do
-        @updated_files.uniq.each do |filename|
-          @output_stream.puts "modified: #{filename}"
-          trace = TracePoint.new(:class) do |tp|
-            @configuration.on_class_load.call(tp.self)
-          end
-          trace.enable
-          load filename
-          trace.disable
-          @output_stream.puts
-        end
-        @updated_files.clear
-      end
+      refresh
 
       @runner = RSpec::Interactive::Runner.new(parsed_args)
 
