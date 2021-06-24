@@ -42,6 +42,27 @@ Update `.gitignore`
 echo '.rspec_interactive_history' >> .gitignore
 ```
 
+### A Note About FactoryBot
+
+It is not possible to reload a file containing FactoryBot factory definitions via `load` because FactoryBot does not allow factories to be redefined. Be carefule not to add any directories to `watch_dirs` which contain factory definitions. Instead, you should configure the location of your factories like the following in your `spec_helper.rb`:
+
+```ruby
+FactoryBot.definition_file_paths = %w(spec/factories)
+FactoryBot.find_definitions
+```
+
+Then add the following to your RSpec Interactive config
+
+```ruby
+RSpec::Interactive.configure do |config|
+  config.refresh do
+    FactoryBot.reload
+  end
+end
+```
+
+This will cause factories to be reloaded before each test run and also whenever the `refresh` command is invoked in the console.
+
 ## Usage
 
 Optionally, specify a config file with `--config <config-file>`. Optionally, specify arguments to an initial RSpec invocation with `--initial-rspec-args <initial-rspec-args>`.
@@ -87,7 +108,6 @@ Run multiple specs:
 ```shell
 [6] pry(main)> rspec examples/passing_spec.rb examples/failing_spec.rb
 ```
-
 Debug a spec (use `exit` to resume while debugging):
 
 ```shell
