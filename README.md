@@ -1,6 +1,6 @@
 # RSpec Interactive
 
-An Pry console capable of running specs.
+A Pry console capable of running specs.
 
 ## Installation & Configuration
 
@@ -17,7 +17,7 @@ RSpec::Interactive.configure do |config|
   # Directories to watch for file changes. When a file changes, it will be reloaded like `load 'path/to/file'`.
   config.watch_dirs += ["app", "lib", "config"]
 
-  # This block is invoked on startup. RSpec configuration must happen here so that it can be reloaded before each test run.
+  # This block is invoked on startup. RSpec configuration must happen here so that it can be cached and reloaded before each test run.
   config.configure_rspec do
     require './spec/spec_helper.rb'
   end
