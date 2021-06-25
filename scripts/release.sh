@@ -15,6 +15,8 @@ fi
 NEW_VERSION=$1
 CURRENT_VERSION=$(grep VERSION lib/rspec-interactive/version.rb | cut -d'"' -f 2)
 
+bundle exec bin/test
+
 echo "Updating from v$CURRENT_VERSION to v$NEW_VERSION. Press enter to continue."
 read
 
