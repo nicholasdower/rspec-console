@@ -168,6 +168,8 @@ module RSpec
       RSpec.clear_examples
       RSpec.reset
       @config_cache.replay_configuration
+    ensure
+      @runner = nil
     end
   end
 end
