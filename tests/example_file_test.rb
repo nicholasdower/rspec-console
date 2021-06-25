@@ -7,7 +7,11 @@ examples = Tempfile.new('examples')
 
 config = Tempfile.new('config')
 config.write <<~EOF
-  RSpec.configuration.example_status_persistence_file_path = "#{examples.path}"
+  RSpec::Interactive.configure do |config|
+    config.configure_rspec do
+      RSpec.configuration.example_status_persistence_file_path = "#{examples.path}"
+    end
+  end
 EOF
 config.rewind
 

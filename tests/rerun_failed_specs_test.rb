@@ -4,11 +4,15 @@ examples = Tempfile.new('examples')
 
 config = Tempfile.new('config')
 config.write <<~EOF
-  RSpec.configuration.example_status_persistence_file_path = "#{examples.path}"
+  RSpec::Interactive.configure do |config|
+    config.configure_rspec do
+      RSpec.configuration.example_status_persistence_file_path = "#{examples.path}"
+    end
+  end
 EOF
 config.rewind
 
-Test.test "failing spec with example file", config_path: config.path do
+Test.test "rerun failing spec with example file", config_path: config.path do
   await_prompt
 
   RSpec.configuration.backtrace_exclusion_patterns = [ /.*/ ]
