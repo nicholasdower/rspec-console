@@ -48,7 +48,7 @@ It is not possible to reload a file containing FactoryBot factory definitions vi
 
 ```ruby
 FactoryBot.definition_file_paths = %w(spec/factories)
-FactoryBot.find_definitions
+FactoryBot.find_definitions # Only if not using Rails
 ```
 
 Then add the following to your RSpec Interactive config
@@ -62,6 +62,10 @@ end
 ```
 
 This will cause factories to be reloaded before each test run and also whenever the `refresh` command is invoked in the console.
+
+See: https://github.com/thoughtbot/factory_bot/blob/master/GETTING_STARTED.md#configure-your-test-suite
+
+See: https://github.com/thoughtbot/factory_bot/blob/master/GETTING_STARTED.md#rails-preloaders-and-rspec
 
 ## Usage
 
