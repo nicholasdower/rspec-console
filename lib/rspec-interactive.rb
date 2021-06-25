@@ -39,12 +39,12 @@ module RSpec
       load config_file if config_file
 
       check_rails
-      start_file_watcher
       trap_interrupt
       configure_pry
 
       @init_thread = Thread.start {
         @config_cache.record_configuration { @configuration.configure_rspec.call }
+        start_file_watcher
       }
 
       if initial_rspec_args
@@ -131,11 +131,6 @@ module RSpec
     end
 
     def self.rspec(args)
-      if @init_thread&.alive?
-        @init_thread.join
-        @init_thread = nil
-      end
-
       parsed_args = args.flat_map do |arg|
         if arg.match(/[\*\?\[]/)
           glob = Dir.glob(arg)
@@ -145,9 +140,16 @@ module RSpec
         end
       end
 
-      refresh
-
+      # Initialize the runner before waiting for the init thread so that the interrupt
+      # handler will cancel the RSpec invocation rather than kill the app.
       @runner = RSpec::Interactive::Runner.new(parsed_args)
+
+      if @init_thread&.alive?
+        @init_thread.join
+        @init_thread = nil
+      end
+
+      refresh
 
       # Stop saving history in case a new Pry session is started for debugging.
       Pry.config.history_save = false
