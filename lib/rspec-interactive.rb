@@ -174,6 +174,11 @@ module RSpec
     end
 
     def self.rubo_cop(args)
+      if @init_thread&.alive?
+        @init_thread.join
+        @init_thread = nil
+      end
+
       if defined?(RuboCop)
         RuboCop::CLI.new.run args
       else
