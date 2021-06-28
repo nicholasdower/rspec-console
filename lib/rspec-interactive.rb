@@ -11,6 +11,7 @@ require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/input_completer'
 require 'rspec-interactive/refresh_command'
 require 'rspec-interactive/rspec_command'
+require 'rspec-interactive/rubo_cop_command'
 
 module RSpec
   module Interactive
@@ -170,6 +171,14 @@ module RSpec
       @config_cache.replay_configuration
     ensure
       @runner = nil
+    end
+
+    def self.rubo_cop(args)
+      if defined?(RuboCop)
+        RuboCop::CLI.new.run args
+      else
+        @error_stream.puts "fatal: RuboCop not found. Is the gem installed in this project?"
+      end
     end
   end
 end
