@@ -68,6 +68,7 @@ module RSpec
       RSpec.configure do |config|
        config.error_stream = @error_stream
        config.output_stream = @output_stream
+       config.start_time = RSpec::Core::Time.now
       end
     end
 
