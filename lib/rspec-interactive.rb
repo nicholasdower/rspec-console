@@ -77,9 +77,7 @@ module RSpec
           # We are on a different thread. There is a race here. Ignore nil.
           @runner&.quit
         else
-          @output_stream.puts
-          system "stty", @stty_save
-          exit!(0)
+          raise Interrupt
         end
       end
     end
