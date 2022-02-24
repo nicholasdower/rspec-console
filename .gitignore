@@ -1,3 +1,4 @@
 rspec-interactive-*.gem
 .rspec_interactive_history
 .rspec_interactive_config
+.idea
