@@ -3,9 +3,9 @@ require 'listen'
 require 'pry'
 require 'readline'
 require 'rspec/core'
-require 'rspec/teamcity'
 require 'shellwords'
 require 'socket'
+require 'teamcity/spec/runner/formatter/teamcity/formatter'
 
 require 'rspec-interactive/config'
 require 'rspec-interactive/input_completer'
@@ -14,12 +14,12 @@ require 'rspec-interactive/rspec_command'
 require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/rubo_cop_command'
 require 'rspec-interactive/runner'
-require 'rspec-interactive/team_city_formatter'
 
 module RSpec
   module Interactive
 
     DEFAULT_HISTORY_FILE = '.rspec_interactive_history'.freeze
+    DEFAULT_PORT = 5678
 
     class << self
       attr_accessor :configuration
@@ -29,7 +29,15 @@ module RSpec
       block.call(@configuration)
     end
 
-    def self.start(config_file: nil, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
+    def self.start(
+      config_file:   nil,
+      server:        false,
+      port:          DEFAULT_PORT,
+      history_file:  DEFAULT_HISTORY_FILE,
+      input_stream:  STDIN,
+      output_stream: STDOUT,
+      error_stream:  STDERR)
+
       @history_file = history_file
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
@@ -50,19 +58,22 @@ module RSpec
       @config_cache.record_configuration { @configuration.configure_rspec.call }
       start_file_watcher
 
-      @server_thread = Thread.start {
-        server = TCPServer.new 5678
+      if server
+        server_thread = Thread.start do
+          server = TCPServer.new 5678
 
-        while client = server.accept
-          request = client.gets
-          args = Shellwords.split(request)
-          rspec_for_server(client, args)
-          client.close
+          while client = server.accept
+            request = client.gets
+            args = Shellwords.split(request)
+            rspec_for_server(client, args)
+            client.close
+          end
         end
-      }
+      end
 
       Pry.start
       @listener.stop if @listener
+      server_thread.exit if server_thread
       0
     end
 
@@ -180,6 +191,9 @@ module RSpec
 
     def self.rspec_for_server(client, args)
       @rspec_mutex.synchronize do
+        # Set the client so that logs are written to the client rathe than STDOUT.
+        Spec::Runner::Formatter::TeamcityFormatter.client = client
+
         @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
         refresh
@@ -189,13 +203,13 @@ module RSpec
 
         # RSpec::Interactive-specific RSpec configuration
         configure_rspec
+        RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
 
         # Run.
-        Spec::Runner::Formatter::TeamcityFormatter.client = client
         exit_code = @runner.run
-        Spec::Runner::Formatter::TeamcityFormatter.client = nil
 
         # Reset
+        Spec::Runner::Formatter::TeamcityFormatter.client = nil
         RSpec.clear_examples
         RSpec.reset
         @config_cache.replay_configuration

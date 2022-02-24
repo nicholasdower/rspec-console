@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'rspec-interactive'
+require 'shellwords'
+require 'socket'
+
+@options = {
+  host: 'localhost',
+  port:   RSpec::Interactive::DEFAULT_PORT
+}
+
+parser = OptionParser.new do |opts|
+  opts.banner = "Executes RSpec by connecting to a running RSpec Interactive shell.\n\n"\
+    "Usage: bundle exec rspec-interactive-run [--host <host>] [--port <port>] [rspec-args]"
+
+  opts.on("-h", "--host <host>", String, "Optional. Server host. Defaults to localhost.") do |host|
+    @options[:host] = host
+  end
+
+  opts.on("-p", "--port <port>", Integer, "Optional. Server port. Defaults to #{RSpec::Interactive::DEFAULT_PORT}.") do |port|
+    @options[:port] = port
+  end
+
+end.parse
+
+server = TCPSocket.open(@options[:host], @options[:port])
+server.puts ARGV.map{|arg| Shellwords.escape arg}.join(' ')
+while response = server.gets do
+  puts "response: #{response}"
+end
+server.close

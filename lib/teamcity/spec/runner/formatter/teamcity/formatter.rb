@@ -1,3 +1,5 @@
+require 'rspec/teamcity'
+
 module Spec
   module Runner
     module Formatter

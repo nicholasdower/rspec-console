@@ -3,14 +3,27 @@
 require 'optparse'
 require 'rspec-interactive'
 
-@options = {}
+@options = {
+  server: false,
+  port:   RSpec::Interactive::DEFAULT_PORT
+}
+
 parser = OptionParser.new do |opts|
   opts.banner = "Starts an interactive RSpec shell.\n\n"\
-    "Usage: bundle exec rspec-interactive [-c config-file]"
+    "Usage: bundle exec rspec-interactive [--config config-file] [--server [--port <port>]]"
 
   opts.on("-c", "--config <config-file>", String, "Optional. Path to the RSpec Interactive config file.") do |config_file|
     @options[:config_file] = config_file
   end
+
+  opts.on("-s", "--server", "Optional. Enable server used by IDEs.") do
+    @options[:server] = true
+  end
+
+  opts.on("-p", "--port <port>", Integer, "Optional. Server port. Defaults to #{RSpec::Interactive::DEFAULT_PORT}.") do |port|
+    @options[:port] = port
+  end
+
 end.parse!
 
-RSpec::Interactive.start(config_file: @options[:config_file])
+RSpec::Interactive.start(config_file: @options[:config_file], server: @options[:server], port: @options[:port])

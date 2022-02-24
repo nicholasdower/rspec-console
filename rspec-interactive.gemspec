@@ -23,10 +23,11 @@ Gem::Specification.new do |spec|
   end
   spec.bindir        = 'bin'
   spec.executables   << 'rspec-interactive'
+  spec.executables   << 'rspec-interactive-run'
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'rspec-core'
-  spec.add_dependency 'rspec-teamcity'
+  spec.add_dependency 'rspec-teamcity', '1.0.0'
   spec.add_dependency 'listen'
   spec.add_dependency 'pry'
 end
