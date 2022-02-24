@@ -69,10 +69,10 @@ See: https://github.com/thoughtbot/factory_bot/blob/master/GETTING_STARTED.md#ra
 
 ## Usage
 
-Optionally, specify a config file with `--config <config-file>`. Optionally, specify arguments to an initial RSpec invocation with `--initial-rspec-args <initial-rspec-args>`.
+Optionally, specify a config file with `--config <config-file>`.
 
 ```shell
-bundle exec rspec-interactive [--config <config-file>] [--initial-rspec-args <initial-rspec-args>]
+bundle exec rspec-interactive [--config <config-file>]
 ```
 
 ## Example Usage In This Repo
@@ -81,12 +81,6 @@ Start:
 
 ```shell
 bundle exec rspec-interactive
-```
-
-Start with an initial RSpec invocation:
-
-```shell
-bundle exec rspec-interactive --initial-rspec-args examples/passing_spec.rb
 ```
 
 Run a passing spec:

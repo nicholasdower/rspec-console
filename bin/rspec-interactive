@@ -6,15 +6,11 @@ require 'rspec-interactive'
 @options = {}
 parser = OptionParser.new do |opts|
   opts.banner = "Starts an interactive RSpec shell.\n\n"\
-    "Usage: bundle exec rspec-interactive [-c config-file] <initial-rspec-args>"
+    "Usage: bundle exec rspec-interactive [-c config-file]"
 
   opts.on("-c", "--config <config-file>", String, "Optional. Path to the RSpec Interactive config file.") do |config_file|
     @options[:config_file] = config_file
   end
-
-  opts.on("-r", "--initial-rspec-args <initial-rspec-args>", String, "Optional. Arguments to pass to an initial invocation of RSpec.") do |initial_rspec_args|
-    @options[:initial_rspec_args] = initial_rspec_args
-  end
 end.parse!
 
-RSpec::Interactive.start(config_file: @options[:config_file], initial_rspec_args: @options[:initial_rspec_args])
+RSpec::Interactive.start(config_file: @options[:config_file])

@@ -26,7 +26,7 @@ module RSpec
       block.call(@configuration)
     end
 
-    def self.start(config_file: nil, initial_rspec_args: nil, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
+    def self.start(config_file: nil, history_file: DEFAULT_HISTORY_FILE, input_stream: STDIN, output_stream: STDOUT, error_stream: STDERR)
       @history_file = history_file
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
@@ -45,11 +45,6 @@ module RSpec
 
       @config_cache.record_configuration { @configuration.configure_rspec.call }
       start_file_watcher
-
-      if initial_rspec_args
-        open(@history_file, 'a') { |f| f.puts "rspec #{initial_rspec_args.strip}" }
-        rspec Shellwords.split(initial_rspec_args)
-      end
 
       Pry.start
       @listener.stop if @listener
