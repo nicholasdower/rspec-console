@@ -43,10 +43,8 @@ module RSpec
       trap_interrupt
       configure_pry
 
-      @init_thread = Thread.start {
-        @config_cache.record_configuration { @configuration.configure_rspec.call }
-        start_file_watcher
-      }
+      @config_cache.record_configuration { @configuration.configure_rspec.call }
+      start_file_watcher
 
       if initial_rspec_args
         open(@history_file, 'a') { |f| f.puts "rspec #{initial_rspec_args.strip}" }
@@ -141,14 +139,7 @@ module RSpec
         end
       end
 
-      # Initialize the runner before waiting for the init thread so that the interrupt
-      # handler will cancel the RSpec invocation rather than kill the app.
       @runner = RSpec::Interactive::Runner.new(parsed_args)
-
-      if @init_thread&.alive?
-        @init_thread.join
-        @init_thread = nil
-      end
 
       refresh
 
@@ -174,11 +165,6 @@ module RSpec
     end
 
     def self.rubo_cop(args)
-      if @init_thread&.alive?
-        @init_thread.join
-        @init_thread = nil
-      end
-
       if defined?(RuboCop)
         RuboCop::CLI.new.run args
       else
