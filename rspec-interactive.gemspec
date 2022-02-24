@@ -26,6 +26,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'rspec-core'
+  spec.add_dependency 'rspec-teamcity'
   spec.add_dependency 'listen'
   spec.add_dependency 'pry'
 end

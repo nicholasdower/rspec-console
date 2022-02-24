@@ -5,6 +5,7 @@ PATH
       listen
       pry
       rspec-core
+      rspec-teamcity
 
 GEM
   remote: https://rubygems.org/
@@ -22,12 +23,21 @@ GEM
     rb-fsevent (0.11.0)
     rb-inotify (0.10.1)
       ffi (~> 1.0)
+    rspec (3.9.0)
+      rspec-core (~> 3.9.0)
+      rspec-expectations (~> 3.9.0)
+      rspec-mocks (~> 3.9.0)
     rspec-core (3.9.3)
       rspec-support (~> 3.9.3)
     rspec-expectations (3.9.4)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.9.0)
+    rspec-mocks (3.9.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.9.0)
     rspec-support (3.9.4)
+    rspec-teamcity (1.0.0)
+      rspec (>= 2.99, >= 2.14.2, < 4)
 
 PLATFORMS
   x86_64-darwin-20

@@ -3,15 +3,18 @@ require 'listen'
 require 'pry'
 require 'readline'
 require 'rspec/core'
+require 'rspec/teamcity'
 require 'shellwords'
+require 'socket'
 
-require 'rspec-interactive/runner'
 require 'rspec-interactive/config'
-require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/input_completer'
 require 'rspec-interactive/refresh_command'
 require 'rspec-interactive/rspec_command'
+require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/rubo_cop_command'
+require 'rspec-interactive/runner'
+require 'rspec-interactive/team_city_formatter'
 
 module RSpec
   module Interactive
@@ -30,7 +33,8 @@ module RSpec
       @history_file = history_file
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
-      @mutex = Mutex.new
+      @file_change_mutex = Mutex.new
+      @rspec_mutex = Mutex.new
       @output_stream = output_stream
       @input_stream = input_stream
       @error_stream = error_stream
@@ -46,6 +50,17 @@ module RSpec
       @config_cache.record_configuration { @configuration.configure_rspec.call }
       start_file_watcher
 
+      @server_thread = Thread.start {
+        server = TCPServer.new 5678
+
+        while client = server.accept
+          request = client.gets
+          args = Shellwords.split(request)
+          rspec_for_server(client, args)
+          client.close
+        end
+      }
+
       Pry.start
       @listener.stop if @listener
       0
@@ -59,10 +74,10 @@ module RSpec
       end
     end
 
-    def self.configure_rspec
+    def self.configure_rspec(error_stream: @error_stream, output_stream: @output_stream)
       RSpec.configure do |config|
-       config.error_stream = @error_stream
-       config.output_stream = @output_stream
+       config.error_stream = error_stream
+       config.output_stream = output_stream
        config.start_time = RSpec::Core::Time.now
       end
     end
@@ -83,7 +98,7 @@ module RSpec
 
       # Only polling seems to work in Docker.
       @listener = Listen.to(*@configuration.watch_dirs, only: /\.rb$/, force_polling: true) do |modified, added|
-        @mutex.synchronize do
+        @file_change_mutex.synchronize do
           @updated_files.concat(added + modified)
         end
       end
@@ -107,7 +122,7 @@ module RSpec
     end
 
     def self.refresh
-      @mutex.synchronize do
+      @file_change_mutex.synchronize do
         @updated_files.uniq.each do |filename|
           @output_stream.puts "changed: #{filename}"
           trace = TracePoint.new(:class) do |tp|
@@ -123,8 +138,8 @@ module RSpec
       @configuration.refresh.call
     end
 
-    def self.rspec(args)
-      parsed_args = args.flat_map do |arg|
+    def self.parse_args(args)
+      args.flat_map do |arg|
         if arg.match(/[\*\?\[]/)
           glob = Dir.glob(arg)
           glob.empty? ? [arg] : glob
@@ -132,30 +147,59 @@ module RSpec
           [arg]
         end
       end
+    end
 
-      @runner = RSpec::Interactive::Runner.new(parsed_args)
+    def self.rspec(args)
+      @rspec_mutex.synchronize do
 
-      refresh
+        @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
-      # Stop saving history in case a new Pry session is started for debugging.
-      Pry.config.history_save = false
+        refresh
 
-      # RSpec::Interactive-specific RSpec configuration
-      configure_rspec
+        # Stop saving history in case a new Pry session is started for debugging.
+        Pry.config.history_save = false
 
-      # Run.
-      exit_code = @runner.run
-      @runner = nil
+        # RSpec::Interactive-specific RSpec configuration
+        configure_rspec
 
-      # Reenable history
-      Pry.config.history_save = true
+        # Run.
+        exit_code = @runner.run
+        @runner = nil
 
-      # Reset
-      RSpec.clear_examples
-      RSpec.reset
-      @config_cache.replay_configuration
-    ensure
-      @runner = nil
+        # Reenable history
+        Pry.config.history_save = true
+
+        # Reset
+        RSpec.clear_examples
+        RSpec.reset
+        @config_cache.replay_configuration
+      ensure
+        @runner = nil
+      end
+    end
+
+    def self.rspec_for_server(client, args)
+      @rspec_mutex.synchronize do
+        @runner = RSpec::Interactive::Runner.new(parse_args(args))
+
+        refresh
+
+        # Stop saving history in case a new Pry session is started for debugging.
+        Pry.config.history_save = false
+
+        # RSpec::Interactive-specific RSpec configuration
+        configure_rspec
+
+        # Run.
+        Spec::Runner::Formatter::TeamcityFormatter.client = client
+        exit_code = @runner.run
+        Spec::Runner::Formatter::TeamcityFormatter.client = nil
+
+        # Reset
+        RSpec.clear_examples
+        RSpec.reset
+        @config_cache.replay_configuration
+      end
     end
 
     def self.rubo_cop(args)
@@ -165,5 +209,6 @@ module RSpec
         @error_stream.puts "fatal: RuboCop not found. Is the gem installed in this project?"
       end
     end
+
   end
 end
