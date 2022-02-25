@@ -5,8 +5,8 @@ module RSpec
         @client = client
       end
 
-      def puts(str = "")
-        @client.puts(str&.to_s || '')
+      def print(str = "")
+        @client.print(str&.to_s || '')
       end
 
       def string
