@@ -170,8 +170,9 @@ module RSpec
       RSpec.clear_examples
       RSpec.reset
       @config_cache.replay_configuration
-    rescue Interrupt
+    rescue Interrupt => e
       @runner&.quit
+      raise e
     ensure
       @runner = nil
     end
