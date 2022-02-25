@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'optparse'
-require 'rspec-interactive'
 require 'shellwords'
 require 'socket'
 
