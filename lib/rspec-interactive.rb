@@ -52,7 +52,6 @@ module RSpec
       load config_file if config_file
 
       check_rails
-      trap_interrupt
       configure_pry
 
       @config_cache.record_configuration { @configuration.configure_rspec.call }
@@ -93,17 +92,6 @@ module RSpec
       end
     end
 
-    def self.trap_interrupt
-      trap('INT') do
-        if @runner
-          # We are on a different thread. There is a race here. Ignore nil.
-          @runner&.quit
-        else
-          raise Interrupt
-        end
-      end
-    end
-
     def self.start_file_watcher
       return if @configuration.watch_dirs.empty?
 
@@ -117,9 +105,6 @@ module RSpec
     end
 
     def self.configure_pry
-      # Prevent Pry from trapping too. It will break ctrl-c handling.
-      Pry.config.should_trap_interrupts = false
-
       # Set up IO.
       Pry.config.input = Readline
       Pry.config.output = @output_stream
@@ -184,6 +169,8 @@ module RSpec
         RSpec.clear_examples
         RSpec.reset
         @config_cache.replay_configuration
+      rescue Interrupt
+        @runner&.quit
       ensure
         @runner = nil
       end
