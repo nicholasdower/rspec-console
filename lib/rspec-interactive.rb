@@ -58,10 +58,17 @@ module RSpec
       check_rails
       configure_pry
 
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       @config_cache.record_configuration { @configuration.configure_rspec.call }
+      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      if end_time - start_time > 5
+        @output_stream.puts "Configuring RSpec took #{(end_time - start_time).round} seconds."
+      end
+
       start_file_watcher
 
       if server
+        @output_stream.puts "Listening on port #{port}."
         server_thread = Thread.start do
           server = TCPServer.new port
 
