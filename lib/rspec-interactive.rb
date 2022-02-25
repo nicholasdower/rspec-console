@@ -179,6 +179,10 @@ module RSpec
 
     def self.rspec_for_server(client, args)
       @command_mutex.synchronize do
+        # Prevent the debugger from being used. The server isn't interactive.
+        disable_pry = ENV['DISABLE_PRY']
+        ENV['DISABLE_PRY'] = 'true'
+
         output = ClientOutput.new(client)
         Stdio.capture(ClientOutput.new(client)) do
           @runner = RSpec::Interactive::Runner.new(parse_args(args))
@@ -200,6 +204,8 @@ module RSpec
           RSpec.reset
           @config_cache.replay_configuration
         end
+      ensure
+        ENV['DISABLE_PRY'] = disable_pry
       end
     end
 
