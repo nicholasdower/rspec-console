@@ -190,6 +190,9 @@ module RSpec
 
         # RSpec::Interactive-specific RSpec configuration
         configure_rspec
+        RSpec.configuration.instance_variable_set(
+          :@formatter_loader,
+          RSpec::Core::Formatters::Loader.new(RSpec::Core::Reporter.new(RSpec.configuration)))
         RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
 
         # Run.
