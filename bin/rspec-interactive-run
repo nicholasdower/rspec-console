@@ -7,7 +7,7 @@ require 'socket'
 
 @options = {
   host: 'localhost',
-  port:   RSpec::Interactive::DEFAULT_PORT
+  port: 5678
 }
 
 parser = OptionParser.new do |opts|
@@ -18,7 +18,7 @@ parser = OptionParser.new do |opts|
     @options[:host] = host
   end
 
-  opts.on("-p", "--port <port>", Integer, "Optional. Server port. Defaults to #{RSpec::Interactive::DEFAULT_PORT}.") do |port|
+  opts.on("-p", "--port <port>", Integer, "Optional. Server port. Defaults to 5678.") do |port|
     @options[:port] = port
   end
 
