@@ -14,6 +14,7 @@ require 'rspec-interactive/pry'
 require 'rspec-interactive/refresh_command'
 require 'rspec-interactive/rspec_command'
 require 'rspec-interactive/rspec_config_cache'
+require 'rspec-interactive/rspec_core_example'
 require 'rspec-interactive/rubo_cop_command'
 require 'rspec-interactive/runner'
 require 'rspec-interactive/stdio'
@@ -191,9 +192,16 @@ module RSpec
 
           # RSpec::Interactive-specific RSpec configuration
           configure_rspec
+
+          # RubyMine specifies --format. That causes a formatter to be added. It does not override
+          # the existing formatter (if one is set by default). Clear any formatters but resetting
+          # the loader.
           RSpec.configuration.instance_variable_set(
             :@formatter_loader,
             RSpec::Core::Formatters::Loader.new(RSpec::Core::Reporter.new(RSpec.configuration)))
+
+          # Always use the teamcity formatter, even though RubyMine always specifies it.
+          # This make manual testing of rspec-interactive easier.
           RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
 
           # Run.
