@@ -58,18 +58,12 @@ module RSpec
       check_rails
       trap_interrupt
       configure_pry
-
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      @config_cache.record_configuration { @configuration.configure_rspec.call }
-      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      if end_time - start_time > 5
-        @output_stream.puts "Configuring RSpec took #{(end_time - start_time).round} seconds."
-      end
+      load_rspec_configuration
 
       start_file_watcher
 
       if server
-        @output_stream.puts "Listening on port #{port}."
+        @output_stream.puts "listening on port #{port}"
         server_thread = Thread.start do
           server = TCPServer.new port
 
@@ -96,14 +90,6 @@ module RSpec
       end
     end
 
-    def self.configure_rspec(error_stream: @error_stream, output_stream: @output_stream)
-      RSpec.configure do |config|
-       config.error_stream = error_stream
-       config.output_stream = output_stream
-       config.start_time = RSpec::Core::Time.now
-      end
-    end
-
     def self.trap_interrupt
       trap('INT') do
         if @runner
@@ -125,6 +111,20 @@ module RSpec
         end
       end
       @listener.start
+    end
+
+    def self.load_rspec_configuration
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      config_thread = Thread.start do
+        @config_cache.record_configuration { @configuration.configure_rspec.call }
+      end
+      unless config_thread.join(3)
+        @output_stream.puts "executing configure_rspec hook..."
+      end
+      config_thread.join
+
+      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      @output_stream.puts "configure_rspec hook took #{(end_time - start_time).round} seconds" if end_time - start_time > 5
     end
 
     def self.configure_pry
@@ -180,7 +180,11 @@ module RSpec
       Pry.config.history_save = false
 
       # RSpec::Interactive-specific RSpec configuration
-      configure_rspec
+      RSpec.configure do |config|
+       config.error_stream = @error_stream
+       config.output_stream = @output_stream
+       config.start_time = RSpec::Core::Time.now
+      end
 
       # Run.
       exit_code = @runner.run
@@ -210,7 +214,11 @@ module RSpec
           refresh
 
           # RSpec::Interactive-specific RSpec configuration
-          configure_rspec
+          RSpec.configure do |config|
+           config.error_stream = @error_stream
+           config.output_stream = @output_stream
+           config.start_time = RSpec::Core::Time.now
+          end
 
           # RubyMine specifies --format. That causes a formatter to be added. It does not override
           # the existing formatter (if one is set by default). Clear any formatters but resetting
