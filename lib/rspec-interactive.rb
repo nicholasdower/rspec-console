@@ -212,8 +212,15 @@ module RSpec
     end
 
     def self.eval(&block)
-      @command_mutex.synchronize do
+      if Thread.current.thread_variable_get('holding_lock')
         yield
+      else
+        @command_mutex.synchronize do
+          Thread.current.thread_variable_set('holding_lock', true)
+          yield
+        ensure
+          Thread.current.thread_variable_set('holding_lock', false)
+        end
       end
     end
   end
