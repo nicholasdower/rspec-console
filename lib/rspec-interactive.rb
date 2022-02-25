@@ -7,13 +7,16 @@ require 'shellwords'
 require 'socket'
 require 'teamcity/spec/runner/formatter/teamcity/formatter'
 
+require 'rspec-interactive/client_output'
 require 'rspec-interactive/config'
 require 'rspec-interactive/input_completer'
+require 'rspec-interactive/pry'
 require 'rspec-interactive/refresh_command'
 require 'rspec-interactive/rspec_command'
 require 'rspec-interactive/rspec_config_cache'
 require 'rspec-interactive/rubo_cop_command'
 require 'rspec-interactive/runner'
+require 'rspec-interactive/stdio'
 
 module RSpec
   module Interactive
@@ -42,7 +45,7 @@ module RSpec
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
       @file_change_mutex = Mutex.new
-      @rspec_mutex = Mutex.new
+      @command_mutex = Mutex.new
       @output_stream = output_stream
       @input_stream = input_stream
       @error_stream = error_stream
@@ -59,7 +62,7 @@ module RSpec
 
       if server
         server_thread = Thread.start do
-          server = TCPServer.new 5678
+          server = TCPServer.new port
 
           while client = server.accept
             request = client.gets
@@ -146,63 +149,56 @@ module RSpec
     end
 
     def self.rspec(args)
-      @rspec_mutex.synchronize do
+      @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
-        @runner = RSpec::Interactive::Runner.new(parse_args(args))
+      refresh
 
-        refresh
+      # Stop saving history in case a new Pry session is started for debugging.
+      Pry.config.history_save = false
 
-        # Stop saving history in case a new Pry session is started for debugging.
-        Pry.config.history_save = false
+      # RSpec::Interactive-specific RSpec configuration
+      configure_rspec
 
-        # RSpec::Interactive-specific RSpec configuration
-        configure_rspec
+      # Run.
+      exit_code = @runner.run
+      @runner = nil
 
-        # Run.
-        exit_code = @runner.run
-        @runner = nil
+      # Reenable history
+      Pry.config.history_save = true
 
-        # Reenable history
-        Pry.config.history_save = true
-
-        # Reset
-        RSpec.clear_examples
-        RSpec.reset
-        @config_cache.replay_configuration
-      rescue Interrupt
-        @runner&.quit
-      ensure
-        @runner = nil
-      end
+      # Reset
+      RSpec.clear_examples
+      RSpec.reset
+      @config_cache.replay_configuration
+    rescue Interrupt
+      @runner&.quit
+    ensure
+      @runner = nil
     end
 
     def self.rspec_for_server(client, args)
-      @rspec_mutex.synchronize do
-        # Set the client so that logs are written to the client rathe than STDOUT.
-        Spec::Runner::Formatter::TeamcityFormatter.client = client
+      @command_mutex.synchronize do
+        output = ClientOutput.new(client)
+        Stdio.capture(ClientOutput.new(client)) do
+          @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
-        @runner = RSpec::Interactive::Runner.new(parse_args(args))
+          refresh
 
-        refresh
+          # RSpec::Interactive-specific RSpec configuration
+          configure_rspec
+          RSpec.configuration.instance_variable_set(
+            :@formatter_loader,
+            RSpec::Core::Formatters::Loader.new(RSpec::Core::Reporter.new(RSpec.configuration)))
+          RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
 
-        # Stop saving history in case a new Pry session is started for debugging.
-        Pry.config.history_save = false
+          # Run.
+          exit_code = @runner.run
 
-        # RSpec::Interactive-specific RSpec configuration
-        configure_rspec
-        RSpec.configuration.instance_variable_set(
-          :@formatter_loader,
-          RSpec::Core::Formatters::Loader.new(RSpec::Core::Reporter.new(RSpec.configuration)))
-        RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
-
-        # Run.
-        exit_code = @runner.run
-
-        # Reset
-        Spec::Runner::Formatter::TeamcityFormatter.client = nil
-        RSpec.clear_examples
-        RSpec.reset
-        @config_cache.replay_configuration
+          # Reset
+          RSpec.clear_examples
+          RSpec.reset
+          @config_cache.replay_configuration
+        end
       end
     end
 
@@ -214,5 +210,10 @@ module RSpec
       end
     end
 
+    def self.eval(&block)
+      @command_mutex.synchronize do
+        yield
+      end
+    end
   end
 end

@@ -27,6 +27,6 @@ end.parse
 server = TCPSocket.open(@options[:host], @options[:port])
 server.puts ARGV.map{|arg| Shellwords.escape arg}.join(' ')
 while response = server.gets do
-  puts "response: #{response}"
+  puts response
 end
 server.close
