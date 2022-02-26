@@ -58,27 +58,28 @@ module RSpec
       check_rails
       trap_interrupt
       configure_pry
-      load_rspec_configuration
 
-      start_file_watcher
+      @startup_thread = Thread.start do
+        @config_cache.record_configuration { @configuration.configure_rspec.call }
+        start_file_watcher
 
-      if server
-        @output_stream.puts "listening on port #{port}"
-        server_thread = Thread.start do
-          server = TCPServer.new port
+        if server
+          @server_thread = Thread.start do
+            server = TCPServer.new port
 
-          while client = server.accept
-            request = client.gets
-            args = Shellwords.split(request)
-            rspec_for_server(client, args)
-            client.close
+            while client = server.accept
+              request = client.gets
+              args = Shellwords.split(request)
+              rspec_for_server(client, args)
+              client.close
+            end
           end
         end
       end
 
       Pry.start
       @listener.stop if @listener
-      server_thread.exit if server_thread
+      @server_thread.exit if @server_thread
       0
     end
 
@@ -111,20 +112,6 @@ module RSpec
         end
       end
       @listener.start
-    end
-
-    def self.load_rspec_configuration
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      config_thread = Thread.start do
-        @config_cache.record_configuration { @configuration.configure_rspec.call }
-      end
-      unless config_thread.join(3)
-        @output_stream.puts "executing configure_rspec hook..."
-      end
-      config_thread.join
-
-      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      @output_stream.puts "configure_rspec hook took #{(end_time - start_time).round} seconds" if end_time - start_time > 5
     end
 
     def self.configure_pry
@@ -267,6 +254,10 @@ module RSpec
       else
         @command_mutex.synchronize do
           Thread.current.thread_variable_set('holding_lock', true)
+          if @startup_thread
+            @startup_thread.join
+            @startup_thread = nil
+          end
           yield
         ensure
           Thread.current.thread_variable_set('holding_lock', false)
