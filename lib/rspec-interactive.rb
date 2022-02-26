@@ -207,7 +207,6 @@ module RSpec
         disable_pry = ENV['DISABLE_PRY']
         ENV['DISABLE_PRY'] = 'true'
 
-        output = ClientOutput.new(client)
         Stdio.capture(ClientOutput.new(client)) do
           @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
