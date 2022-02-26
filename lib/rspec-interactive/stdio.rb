@@ -1,10 +1,18 @@
 module RSpec
   module Interactive
     class Stdio
-      def self.capture(output)
+      def self.capture2(stdout:, stderr:)
+        old_stdout, old_stderr = $stdout, $stderr
+        $stdout, $stderr = stdout, stderr
+        yield
+      ensure
+        $stdout, $stderr = old_stdout, old_stderr
+      end
+
+      def self.capture(stdout:, stderr:)
         raise ArgumentError, 'missing block' unless block_given?
 
-        stdout, stderr = STDOUT.dup, STDERR.dup
+        old_stdout, old_stderr = STDOUT.dup, STDERR.dup
 
         IO.pipe do |stdout_read, stdout_write|
           IO.pipe do |stderr_read, stderr_write|
@@ -16,13 +24,13 @@ module RSpec
 
             stdout_thread = Thread.new do
               while line = stdout_read.gets do
-                output.print(line)
+                stdout.print(line)
               end
             end
 
             stderr_thread = Thread.new do
               while line = stderr_read.gets do
-                output.print(line)
+                stderr.print(line)
               end
             end
 
@@ -30,8 +38,8 @@ module RSpec
               yield
             ensure
               # TODO: should the threads be killed here?
-              STDOUT.reopen stdout
-              STDERR.reopen stderr
+              STDOUT.reopen old_stdout
+              STDERR.reopen old_stderr
             end
 
             stdout_thread.join

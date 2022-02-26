@@ -18,6 +18,7 @@ require 'rspec-interactive/rspec_core_example'
 require 'rspec-interactive/rubo_cop_command'
 require 'rspec-interactive/runner'
 require 'rspec-interactive/stdio'
+require 'rspec-interactive/string_output'
 
 module RSpec
   module Interactive
@@ -60,8 +61,11 @@ module RSpec
       configure_pry
 
       @startup_thread = Thread.start do
-        @config_cache.record_configuration { @configuration.configure_rspec.call }
-        start_file_watcher
+        @startup_output = StringOutput.new
+        Stdio.capture2(stdout: @startup_output, stderr: @startup_output) do
+          @config_cache.record_configuration { @configuration.configure_rspec.call }
+          start_file_watcher
+        end
 
         if server
           @server_thread = Thread.start do
@@ -204,7 +208,8 @@ module RSpec
         disable_pry = ENV['DISABLE_PRY']
         ENV['DISABLE_PRY'] = 'true'
 
-        Stdio.capture(ClientOutput.new(client)) do
+        output = ClientOutput.new(client)
+        Stdio.capture(stdout: output, stderr: output) do
           @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
           refresh
@@ -255,8 +260,15 @@ module RSpec
         @command_mutex.synchronize do
           Thread.current.thread_variable_set('holding_lock', true)
           if @startup_thread
+            if @startup_thread.alive?
+              @output_stream.puts 'waiting for configure_rspec...'
+            end
             @startup_thread.join
             @startup_thread = nil
+            unless @startup_output.string.empty?
+              @output_stream.puts(@startup_output.string)
+            end
+            @startup_output = nil
           end
           yield
         ensure

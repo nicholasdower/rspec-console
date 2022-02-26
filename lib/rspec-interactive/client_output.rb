@@ -6,7 +6,15 @@ module RSpec
       end
 
       def print(str = "")
-        @client.print(str&.to_s || '')
+        @client.print(str.to_s)
+      end
+
+      def write(str = "")
+        @client.print(str.to_s)
+      end
+
+      def puts(str = "")
+        @client.print(str.to_s + "\n")
       end
 
       def string
