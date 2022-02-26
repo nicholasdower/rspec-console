@@ -258,9 +258,8 @@ module RSpec
       end
     end
 
-    def self.eval(&block)
-      exit if ARGF.eof?
-      if Thread.current.thread_variable_get('holding_lock')
+    def self.eval(line, options, &block)
+      if line.nil? || Thread.current.thread_variable_get('holding_lock')
         yield
       else
         @command_mutex.synchronize do
