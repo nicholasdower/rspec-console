@@ -195,7 +195,7 @@ module RSpec
       end
 
       # Run.
-      exit_code = @runner.run
+      @runner.run
     ensure
       @runner = nil
 
@@ -210,12 +210,13 @@ module RSpec
 
     def self.rspec_for_server(client, args)
       @command_mutex.synchronize do
-        # Prevent the debugger from being used. The server isn't interactive.
-        disable_pry = ENV['DISABLE_PRY']
-        ENV['DISABLE_PRY'] = 'true'
-
         output = ClientOutput.new(client)
+        disable_pry = ENV['DISABLE_PRY']
+
         Stdio.capture(stdout: output, stderr: output) do
+          # Prevent the debugger from being used. The server isn't interactive.
+          ENV['DISABLE_PRY'] = 'true'
+
           @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
           refresh
@@ -239,15 +240,16 @@ module RSpec
           RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
 
           # Run.
-          exit_code = @runner.run
+          @runner.run
+        ensure
+          @runner = nil
+          ENV['DISABLE_PRY'] = disable_pry
 
           # Reset
           RSpec.clear_examples
           RSpec.reset
           @config_cache.replay_configuration
         end
-      ensure
-        ENV['DISABLE_PRY'] = disable_pry
       end
     end
 
