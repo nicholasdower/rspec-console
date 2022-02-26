@@ -61,11 +61,8 @@ module RSpec
       configure_pry
 
       @startup_thread = Thread.start do
-        @startup_output = StringOutput.new
-        Stdio.capture2(stdout: @startup_output, stderr: @startup_output) do
-          @config_cache.record_configuration { @configuration.configure_rspec.call }
-          start_file_watcher
-        end
+        @config_cache.record_configuration { @configuration.configure_rspec.call }
+        start_file_watcher
 
         if server
           @server_thread = Thread.start do
@@ -274,10 +271,6 @@ module RSpec
             end
             @startup_thread.join
             @startup_thread = nil
-            unless @startup_output.string.empty?
-              @output_stream.puts(@startup_output.string)
-            end
-            @startup_output = nil
           end
           yield
         ensure
