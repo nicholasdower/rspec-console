@@ -57,7 +57,7 @@ module RSpec
       load config_file if config_file
 
       check_rails
-      trap_interrupt
+      maybe_trap_interrupt
       configure_pry
 
       @startup_thread = Thread.start do
@@ -95,7 +95,17 @@ module RSpec
       end
     end
 
-    def self.trap_interrupt
+    def self.maybe_trap_interrupt
+      return unless RbConfig::CONFIG['ruby_install_name'] == 'jruby'
+
+      # When on JRuby, Pry traps interrupts and raises an Interrupt exception.
+      # Unfortunately, raising Interrupt is not enough when RSpec is running since it
+      # will only cause the current example to fail. We want to kill RSpec entirely
+      # if it is running so here we disable Pry's handling and rewrite it to include
+      # special handling for RSpec.
+
+      Pry.config.should_trap_interrupts = false
+
       trap('INT') do
         if @runner
           # We are on a different thread. There is a race here. Ignore nil.
@@ -119,9 +129,6 @@ module RSpec
     end
 
     def self.configure_pry
-      # Prevent Pry from trapping too. It will break ctrl-c handling.
-      Pry.config.should_trap_interrupts = false
-
       # Set up IO.
       Pry.config.input = Readline
       Pry.config.output = @output_stream
@@ -189,6 +196,7 @@ module RSpec
 
       # Run.
       exit_code = @runner.run
+    ensure
       @runner = nil
 
       # Reenable history
@@ -198,8 +206,6 @@ module RSpec
       RSpec.clear_examples
       RSpec.reset
       @config_cache.replay_configuration
-    ensure
-      @runner = nil
     end
 
     def self.rspec_for_server(client, args)
