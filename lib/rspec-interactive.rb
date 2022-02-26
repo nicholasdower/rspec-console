@@ -161,14 +161,24 @@ module RSpec
     end
 
     def self.parse_args(args)
-      args.flat_map do |arg|
-        if arg.match(/[\*\?\[]/)
-          glob = Dir.glob(arg)
-          glob.empty? ? [arg] : glob
+      i = 0
+      parsed_args = []
+      until i == args.length
+        case args[i]
+        when /[\*\?\[]/
+          glob = Dir.glob(args[i])
+          parsed_args.concat(glob.empty? ? args[i] : glob)
+        when '--pattern'
+          # RubyMine passes --pattern when running all specs in a dir.
+          # We don't want to expand this since it is used as a glob by RSpec.
+          parsed_args.concat(args[i..(i + 1)])
+          i += 1
         else
-          [arg]
+          parsed_args << args[i]
         end
+        i += 1
       end
+      parsed_args
     end
 
     def self.rspec(args)
