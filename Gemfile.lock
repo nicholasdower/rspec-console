@@ -40,6 +40,7 @@ GEM
       rspec (>= 2.99, >= 2.14.2, < 4)
 
 PLATFORMS
+  x86_64-darwin-19
   x86_64-darwin-20
 
 DEPENDENCIES
