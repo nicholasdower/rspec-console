@@ -262,6 +262,7 @@ module RSpec
     end
 
     def self.eval(&block)
+      exit if ARGF.eof?
       if Thread.current.thread_variable_get('holding_lock')
         yield
       else
