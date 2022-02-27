@@ -178,46 +178,51 @@ module RSpec
     end
 
     def self.rspec(args)
-      @runner = RSpec::Interactive::Runner.new(parse_args(args))
+      @command_mutex.synchronize do
+        begin
+          @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
-      refresh
+          refresh
 
-      # Stop saving history in case a new Pry session is started for debugging.
-      Pry.config.history_save = false
+          # Stop saving history in case a new Pry session is started for debugging.
+          Pry.config.history_save = false
 
-      # RSpec::Interactive-specific RSpec configuration
-      RSpec.configure do |config|
-       config.error_stream = @error_stream
-       config.output_stream = @output_stream
-       config.start_time = RSpec::Core::Time.now
+          # RSpec::Interactive-specific RSpec configuration
+          RSpec.configure do |config|
+           config.error_stream = @error_stream
+           config.output_stream = @output_stream
+           config.start_time = RSpec::Core::Time.now
+          end
+
+          # Run.
+          @runner.run
+        ensure
+          @runner = nil
+
+          # Reenable history
+          Pry.config.history_save = true
+
+          # Reset
+          RSpec.clear_examples
+          RSpec.reset
+          @config_cache.replay_configuration
+        end
       end
-
-      # Run.
-      @runner.run
-    ensure
-      @runner = nil
-
-      # Reenable history
-      Pry.config.history_save = true
-
-      # Reset
-      RSpec.clear_examples
-      RSpec.reset
-      @config_cache.replay_configuration
     end
 
     def self.rspec_for_server(client, args)
-      execute_command_sync do
+      @command_mutex.synchronize do
+        disable_pry = ENV['DISABLE_PRY']
         output = ClientOutput.new(client)
 
         ENV['TEAMCITY_RAKE_RUNNER_DEBUG_OUTPUT_CAPTURER_ENABLED'] = 'false'
         Rake::TeamCity::RunnerCommon.class_variable_set(:@@original_stdout, output)
 
-        disable_pry = ENV['DISABLE_PRY']
-
         Stdio.capture(
           stdout: output,
           stderr: output) do
+
+          await_startup(output: output)
 
           # Prevent the debugger from being used. The server isn't interactive.
           ENV['DISABLE_PRY'] = 'true'
@@ -249,12 +254,14 @@ module RSpec
         rescue Errno::EPIPE => e
           # Don't care.
         ensure
-          @runner = nil
           ENV['DISABLE_PRY'] = disable_pry
+          @runner = nil
 
           # Reset
           RSpec.clear_examples
           RSpec.reset
+
+          await_startup(output: output)
           @config_cache.replay_configuration
         end
       end
@@ -269,26 +276,26 @@ module RSpec
     end
 
     def self.eval(line, options, &block)
-      if line.nil? || Thread.current.thread_variable_get('holding_lock')
-        yield
-      else
-        execute_command_sync(&block)
+      return yield if line.nil? # EOF
+      return yield if line.empty? # blank line
+
+      begin
+        await_startup
+      rescue Interrupt
+        @output_stream.puts
+        return true
       end
+
+      yield
     end
 
-    def self.execute_command_sync
-      @command_mutex.synchronize do
-        Thread.current.thread_variable_set('holding_lock', true)
-        if @startup_thread
-          if @startup_thread.alive?
-            @output_stream.puts 'waiting for configure_rspec...'
-          end
-          @startup_thread.join
-          @startup_thread = nil
+    def self.await_startup(output: @output_stream)
+      if @startup_thread
+        if @startup_thread.alive?
+          output.puts 'waiting for configure_rspec...'
         end
-        yield
-      ensure
-        Thread.current.thread_variable_set('holding_lock', false)
+        @startup_thread.join
+        @startup_thread = nil
       end
     end
   end
