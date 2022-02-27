@@ -18,6 +18,13 @@ module RSpec
       def print(str = "")
         @string += str.to_s
       end
+
+      def flush
+      end
+
+      def closed?
+        @client.closed?
+      end
     end
   end
 end

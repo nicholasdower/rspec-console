@@ -19,6 +19,7 @@ require 'rspec-interactive/rubo_cop_command'
 require 'rspec-interactive/runner'
 require 'rspec-interactive/stdio'
 require 'rspec-interactive/string_output'
+require 'rspec-interactive/threaded_output'
 
 module RSpec
   module Interactive
@@ -75,8 +76,13 @@ module RSpec
           end
         end
 
-        @config_cache.record_configuration { @configuration.configure_rspec.call }
-        start_file_watcher
+        @startup_output = StringOutput.new
+        output = ThreadedOutput.new(thread_map: { Thread.current => @startup_output }, default: @output_stream)
+
+        Stdio.capture(stdout: output, stderr: output) do
+          @config_cache.record_configuration { @configuration.configure_rspec.call }
+          start_file_watcher
+        end
       end
 
       Pry.start
@@ -228,7 +234,7 @@ module RSpec
 
           runner = RSpec::Interactive::Runner.new(parse_args(args))
 
-          refresh(output)
+          refresh(output: output)
 
           # RSpec::Interactive-specific RSpec configuration
           RSpec.configure do |config|
@@ -295,15 +301,24 @@ module RSpec
       begin
         @startup_thread.join
         @startup_thread = nil
+        print_startup_output(output: output)
         true
       rescue Interrupt
         false
       rescue StandardError => e
+        print_startup_output(output: output)
         output.puts 'configure_rspec failed'
         output.puts "#{e.backtrace[0]}: #{e.message} (#{e.class})"
         e.backtrace[1..-1].each { |b| output.puts b }
         false
       end
+    end
+
+    def self.print_startup_output(output: @output_stream)
+      return if @startup_output.nil? || @startup_output.string.empty?
+
+      output.puts(@startup_output.string)
+      @startup_output = nil
     end
   end
 end
