@@ -47,7 +47,7 @@ module RSpec
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
       @file_change_mutex = Mutex.new
-      @command_mutex = Mutex.new
+      @rspec_mutex = Mutex.new
       @output_stream = output_stream
       @input_stream = input_stream
       @error_stream = error_stream
@@ -61,6 +61,7 @@ module RSpec
       configure_pry
 
       @startup_thread = Thread.start do
+        Thread.current.report_on_exception = false
         if server
           @server_thread = Thread.start do
             server = TCPServer.new port
@@ -178,7 +179,7 @@ module RSpec
     end
 
     def self.rspec(args)
-      @command_mutex.synchronize do
+      @rspec_mutex.synchronize do
         begin
           @runner = RSpec::Interactive::Runner.new(parse_args(args))
 
@@ -211,18 +212,16 @@ module RSpec
     end
 
     def self.rspec_for_server(client, args)
-      @command_mutex.synchronize do
+      @rspec_mutex.synchronize do
         disable_pry = ENV['DISABLE_PRY']
         output = ClientOutput.new(client)
 
         ENV['TEAMCITY_RAKE_RUNNER_DEBUG_OUTPUT_CAPTURER_ENABLED'] = 'false'
         Rake::TeamCity::RunnerCommon.class_variable_set(:@@original_stdout, output)
 
-        Stdio.capture(
-          stdout: output,
-          stderr: output) do
+        return unless await_startup(output: output)
 
-          await_startup(output: output)
+        Stdio.capture(stdout: output, stderr: output) do
 
           # Prevent the debugger from being used. The server isn't interactive.
           ENV['DISABLE_PRY'] = 'true'
@@ -261,7 +260,6 @@ module RSpec
           RSpec.clear_examples
           RSpec.reset
 
-          await_startup(output: output)
           @config_cache.replay_configuration
         end
       end
@@ -279,23 +277,32 @@ module RSpec
       return yield if line.nil? # EOF
       return yield if line.empty? # blank line
 
-      begin
-        await_startup
-      rescue Interrupt
+      if await_startup
+        yield
+      else
         @output_stream.puts
-        return true
+        true
       end
-
-      yield
     end
 
     def self.await_startup(output: @output_stream)
-      if @startup_thread
-        if @startup_thread.alive?
-          output.puts 'waiting for configure_rspec...'
-        end
+      return true unless @startup_thread
+
+      if @startup_thread.alive?
+        output.puts 'waiting for configure_rspec...'
+      end
+
+      begin
         @startup_thread.join
         @startup_thread = nil
+        true
+      rescue Interrupt
+        false
+      rescue StandardError => e
+        output.puts 'configure_rspec failed'
+        output.puts "#{e.backtrace[0]}: #{e.message} (#{e.class})"
+        e.backtrace[1..-1].each { |b| output.puts b }
+        false
       end
     end
   end
