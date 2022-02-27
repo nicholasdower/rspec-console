@@ -9,7 +9,7 @@ module RSpec
         $stdout, $stderr = old_stdout, old_stderr
       end
 
-      def self.capture(stdout:, stderr:)
+      def self.capture(stdout:, stderr:, on_error:)
         raise ArgumentError, 'missing block' unless block_given?
 
         old_stdout, old_stderr = STDOUT.dup, STDERR.dup
@@ -26,12 +26,16 @@ module RSpec
               while line = stdout_read.gets do
                 stdout.print(line)
               end
+            rescue StandardError => e
+              on_error.call
             end
 
             stderr_thread = Thread.new do
               while line = stderr_read.gets do
                 stderr.print(line)
               end
+            rescue StandardError => e
+              on_error.call
             end
 
             begin

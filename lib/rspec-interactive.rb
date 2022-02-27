@@ -210,7 +210,11 @@ module RSpec
         output = ClientOutput.new(client)
         disable_pry = ENV['DISABLE_PRY']
 
-        Stdio.capture(stdout: output, stderr: output) do
+        Stdio.capture(
+          stdout: output,
+          stderr: output,
+          on_error: ->() { ::RSpec.world.wants_to_quit = true }) do
+
           # Prevent the debugger from being used. The server isn't interactive.
           ENV['DISABLE_PRY'] = 'true'
 
