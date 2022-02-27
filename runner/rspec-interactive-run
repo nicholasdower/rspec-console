@@ -24,8 +24,12 @@ parser = OptionParser.new do |opts|
 end.parse
 
 server = TCPSocket.open(@options[:host], @options[:port])
-server.puts ARGV.map{ |arg| Shellwords.escape arg }.join(' ')
-while response = server.gets do
-  puts response
+begin
+  server.puts ARGV.map{ |arg| Shellwords.escape arg }.join(' ')
+  server.close_write
+  while response = server.gets do
+    puts response
+  end
+ensure
+  server.close
 end
-server.close
