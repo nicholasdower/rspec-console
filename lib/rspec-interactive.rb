@@ -266,7 +266,7 @@ module RSpec
 
           # Run.
           runner.run
-        rescue Errno::EPIPE => e
+        rescue Errno::EPIPE, IOError
           # Don't care.
         ensure
           ENV['DISABLE_PRY'] = disable_pry
