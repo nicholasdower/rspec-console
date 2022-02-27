@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rspec-interactive (0.9.8)
+    rspec-interactive (0.9.9)
       listen
       pry
       rspec-core
