@@ -227,7 +227,7 @@ module RSpec
           # Prevent the debugger from being used. The server isn't interactive.
           ENV['DISABLE_PRY'] = 'true'
 
-          @runner = RSpec::Interactive::Runner.new(parse_args(args))
+          runner = RSpec::Interactive::Runner.new(parse_args(args))
 
           refresh
 
@@ -250,12 +250,12 @@ module RSpec
           RSpec.configuration.formatter = Spec::Runner::Formatter::TeamcityFormatter
 
           # Run.
-          @runner.run
+          runner.run
         rescue Errno::EPIPE => e
           # Don't care.
         ensure
           ENV['DISABLE_PRY'] = disable_pry
-          @runner = nil
+          runner = nil
 
           # Reset
           RSpec.clear_examples
