@@ -17,6 +17,13 @@ module RSpec
         @client.print(str.to_s + "\n")
       end
 
+      def flush
+      end
+
+      def closed?
+        @client.closed?
+      end
+
       def string
         @output
       end

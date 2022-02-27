@@ -61,9 +61,6 @@ module RSpec
       configure_pry
 
       @startup_thread = Thread.start do
-        @config_cache.record_configuration { @configuration.configure_rspec.call }
-        start_file_watcher
-
         if server
           @server_thread = Thread.start do
             server = TCPServer.new port
@@ -76,11 +73,15 @@ module RSpec
             end
           end
         end
+
+        @config_cache.record_configuration { @configuration.configure_rspec.call }
+        start_file_watcher
       end
 
       Pry.start
       @listener.stop if @listener
       @server_thread.exit if @server_thread
+      @startup_thread.exit if @startup_thread
       0
     end
 
@@ -206,14 +207,17 @@ module RSpec
     end
 
     def self.rspec_for_server(client, args)
-      @command_mutex.synchronize do
+      execute_command_sync do
         output = ClientOutput.new(client)
+
+        ENV['TEAMCITY_RAKE_RUNNER_DEBUG_OUTPUT_CAPTURER_ENABLED'] = 'false'
+        Rake::TeamCity::RunnerCommon.class_variable_set(:@@original_stdout, output)
+
         disable_pry = ENV['DISABLE_PRY']
 
         Stdio.capture(
           stdout: output,
-          stderr: output,
-          on_error: ->() { ::RSpec.world.wants_to_quit = true }) do
+          stderr: output) do
 
           # Prevent the debugger from being used. The server isn't interactive.
           ENV['DISABLE_PRY'] = 'true'
@@ -224,8 +228,8 @@ module RSpec
 
           # RSpec::Interactive-specific RSpec configuration
           RSpec.configure do |config|
-           config.error_stream = @error_stream
-           config.output_stream = @output_stream
+           config.error_stream = output
+           config.output_stream = output
            config.start_time = RSpec::Core::Time.now
           end
 
@@ -242,6 +246,8 @@ module RSpec
 
           # Run.
           @runner.run
+        rescue Errno::EPIPE => e
+          # Don't care.
         ensure
           @runner = nil
           ENV['DISABLE_PRY'] = disable_pry
@@ -266,19 +272,23 @@ module RSpec
       if line.nil? || Thread.current.thread_variable_get('holding_lock')
         yield
       else
-        @command_mutex.synchronize do
-          Thread.current.thread_variable_set('holding_lock', true)
-          if @startup_thread
-            if @startup_thread.alive?
-              @output_stream.puts 'waiting for configure_rspec...'
-            end
-            @startup_thread.join
-            @startup_thread = nil
+        execute_command_sync(&block)
+      end
+    end
+
+    def self.execute_command_sync
+      @command_mutex.synchronize do
+        Thread.current.thread_variable_set('holding_lock', true)
+        if @startup_thread
+          if @startup_thread.alive?
+            @output_stream.puts 'waiting for configure_rspec...'
           end
-          yield
-        ensure
-          Thread.current.thread_variable_set('holding_lock', false)
+          @startup_thread.join
+          @startup_thread = nil
         end
+        yield
+      ensure
+        Thread.current.thread_variable_set('holding_lock', false)
       end
     end
   end
