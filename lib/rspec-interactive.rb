@@ -67,11 +67,22 @@ module RSpec
           @server_thread = Thread.start do
             server = TCPServer.new port
 
-            while client = server.accept
-              request = client.gets
-              args = Shellwords.split(request)
-              rspec_for_server(client, args)
-              client.close
+            while true
+              break unless client = server.accept
+              begin
+                request = client.gets
+                args = Shellwords.split(request)
+                rspec_for_server(client, args)
+              rescue StandardError => e
+                # It would be nice to log to the client here but it might be
+                # disconnected or disconnect before we successfully write. Any
+                # error here is unexpected so just log to the console.
+                @output_stream.puts
+                @output_stream.puts 'error handling client request'
+                log_exception(@output_stream, e)
+              ensure
+                client.close
+              end
             end
           end
         end
@@ -228,7 +239,6 @@ module RSpec
         return unless await_startup(output: output)
 
         Stdio.capture(stdout: output, stderr: output) do
-
           # Prevent the debugger from being used. The server isn't interactive.
           ENV['DISABLE_PRY'] = 'true'
 
@@ -308,10 +318,14 @@ module RSpec
       rescue StandardError => e
         print_startup_output(output: output)
         output.puts 'configure_rspec failed'
-        output.puts "#{e.backtrace[0]}: #{e.message} (#{e.class})"
-        e.backtrace[1..-1].each { |b| output.puts b }
+        log_exception(output, e)
         false
       end
+    end
+
+    def self.log_exception(output, e)
+      output.puts "#{e.backtrace[0]}: #{e.message} (#{e.class})"
+      e.backtrace[1..-1].each { |b| output.puts "\t#{b}" }
     end
 
     def self.print_startup_output(output: @output_stream)
