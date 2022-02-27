@@ -140,17 +140,17 @@ module RSpec
       Pry.config.history_file = @history_file
     end
 
-    def self.refresh
+    def self.refresh(output: @output_stream)
       @file_change_mutex.synchronize do
         @updated_files.uniq.each do |filename|
-          @output_stream.puts "changed: #{filename}"
+          output.puts "changed: #{filename}"
           trace = TracePoint.new(:class) do |tp|
             @configuration.on_class_load.call(tp.self)
           end
           trace.enable
           load filename
           trace.disable
-          @output_stream.puts
+          output.puts
         end
         @updated_files.clear
       end
@@ -228,7 +228,7 @@ module RSpec
 
           runner = RSpec::Interactive::Runner.new(parse_args(args))
 
-          refresh
+          refresh(output)
 
           # RSpec::Interactive-specific RSpec configuration
           RSpec.configure do |config|
