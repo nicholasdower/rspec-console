@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rspec-interactive (0.9.9)
+    rspec-interactive (0.9.10)
       pry
       rspec-core
       rspec-teamcity (= 1.0.0)
@@ -11,6 +11,7 @@ GEM
   specs:
     coderay (1.1.3)
     diff-lcs (1.4.4)
+    ffi (1.15.5)
     ffi (1.15.5-java)
     method_source (1.0.0)
     pry (0.14.1)
