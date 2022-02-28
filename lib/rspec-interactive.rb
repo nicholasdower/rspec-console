@@ -97,9 +97,12 @@ module RSpec
         @startup_output = StringOutput.new
         output = ThreadedOutput.new(thread_map: { Thread.current => @startup_output }, default: @output_stream)
 
+        start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         Stdio.capture(stdout: output, stderr: output) do
           @config_cache.record_configuration { @configuration.configure_rspec.call }
         end
+        finish = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        @startup_duration = (finish - start).round
       end
 
       Pry.start
@@ -294,13 +297,23 @@ module RSpec
     def self.await_startup(output: @output_stream)
       return true unless @startup_thread
 
+      waited = false
       if @startup_thread.alive?
         output.puts 'waiting for configure_rspec...'
+        waited = true
       end
 
       begin
         @startup_thread.join
         @startup_thread = nil
+        if waited
+          if @startup_duration == 1
+            output.puts("configure_rspec took 1 second")
+          else
+            output.puts("configure_rspec took #{@startup_duration} seconds")
+          end
+        end
+
         print_startup_output(output: output)
         true
       rescue Interrupt
@@ -319,9 +332,11 @@ module RSpec
     end
 
     def self.print_startup_output(output: @output_stream)
-      return if @startup_output.nil? || @startup_output.string.empty?
+      return if @startup_output.nil?
 
-      output.puts(@startup_output.string)
+      unless @startup_output.string.empty?
+        output.puts(@startup_output.string)
+      end
       @startup_output = nil
     end
 
