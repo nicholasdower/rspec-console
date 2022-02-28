@@ -1,5 +1,5 @@
+require 'find'
 require 'json'
-require 'listen'
 require 'pry'
 require 'readline'
 require 'rspec/core'
@@ -47,7 +47,6 @@ module RSpec
       @history_file = history_file
       @updated_files = []
       @stty_save = %x`stty -g`.chomp
-      @file_change_mutex = Mutex.new
       @rspec_mutex = Mutex.new
       @output_stream = output_stream
       @input_stream = input_stream
@@ -60,6 +59,7 @@ module RSpec
       check_rails
       maybe_trap_interrupt
       configure_pry
+      configure_watched_files
 
       @startup_thread = Thread.start do
         Thread.current.report_on_exception = false
@@ -92,12 +92,10 @@ module RSpec
 
         Stdio.capture(stdout: output, stderr: output) do
           @config_cache.record_configuration { @configuration.configure_rspec.call }
-          start_file_watcher
         end
       end
 
       Pry.start
-      @listener.stop if @listener
       @server_thread.exit if @server_thread
       @startup_thread.exit if @startup_thread
       0
@@ -132,18 +130,6 @@ module RSpec
       end
     end
 
-    def self.start_file_watcher
-      return if @configuration.watch_dirs.empty?
-
-      # Only polling seems to work in Docker.
-      @listener = Listen.to(*@configuration.watch_dirs, only: /\.rb$/, force_polling: true) do |modified, added|
-        @file_change_mutex.synchronize do
-          @updated_files.concat(added + modified)
-        end
-      end
-      @listener.start
-    end
-
     def self.configure_pry
       # Set up IO.
       Pry.config.input = Readline
@@ -158,18 +144,15 @@ module RSpec
     end
 
     def self.refresh(output: @output_stream)
-      @file_change_mutex.synchronize do
-        @updated_files.uniq.each do |filename|
-          output.puts "changed: #{filename}"
-          trace = TracePoint.new(:class) do |tp|
-            @configuration.on_class_load.call(tp.self)
-          end
-          trace.enable
-          load filename
-          trace.disable
-          output.puts
+      get_updated_files.each do |filename|
+        output.puts "changed: #{filename}"
+        trace = TracePoint.new(:class) do |tp|
+          @configuration.on_class_load.call(tp.self)
         end
-        @updated_files.clear
+        trace.enable
+        load filename
+        trace.disable
+        output.puts
       end
       @configuration.refresh.call
     end
@@ -333,6 +316,29 @@ module RSpec
 
       output.puts(@startup_output.string)
       @startup_output = nil
+    end
+
+    def self.configure_watched_files
+      @watched_files = get_watched_files
+    end
+
+    def self.get_watched_files
+      return Set.new if @configuration.watch_dirs.empty?
+      entries = Find.find(*@configuration.watch_dirs).flat_map do |file|
+        if FileTest.file?(file)
+          [[file, File.mtime(file).to_i]]
+        else
+          []
+        end
+      end
+      entries.to_set
+    end
+
+    def self.get_updated_files
+      new_watched_files = get_watched_files
+      difference = new_watched_files - @watched_files
+      @watched_files = new_watched_files
+      difference.map(&:first)
     end
   end
 end

@@ -27,6 +27,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'rspec-core'
   spec.add_dependency 'rspec-teamcity', '1.0.0'
-  spec.add_dependency 'listen'
   spec.add_dependency 'pry'
 end
