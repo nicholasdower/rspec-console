@@ -5,7 +5,7 @@ require 'rspec-interactive'
 
 @options = {
   server: true,
-  server_port: RSpec::Interactive::DEFAULT_PORT
+  port: RSpec::Interactive::DEFAULT_PORT
 }
 
 parser = OptionParser.new do |opts|
@@ -26,4 +26,4 @@ parser = OptionParser.new do |opts|
 
 end.parse!
 
-RSpec::Interactive.start(config_file: @options[:config_file], server: @options[:server], port: @options[:server_port])
+RSpec::Interactive.start(config_file: @options[:config_file], server: @options[:server], port: @options[:port])
