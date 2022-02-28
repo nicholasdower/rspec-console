@@ -64,9 +64,15 @@ module RSpec
 
       @startup_thread = Thread.start do
         Thread.current.report_on_exception = false
+
         if server
           @server_thread = Thread.start do
-            server = TCPServer.new port
+            begin
+              server = TCPServer.new port
+            rescue StandardError => e
+              log_exception(@output_stream, e)
+              exit 1
+            end
 
             while true
               break unless client = server.accept
