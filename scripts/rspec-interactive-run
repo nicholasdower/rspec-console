@@ -9,7 +9,7 @@ require 'socket'
   port: 5678
 }
 
-parser = OptionParser.new do |opts|
+OptionParser.new do |opts|
   opts.banner = "Executes RSpec by connecting to a running RSpec Interactive shell.\n\n"\
     "Usage: bundle exec rspec-interactive-run [--host <host>] [--port <port>] [rspec-args]"
 
