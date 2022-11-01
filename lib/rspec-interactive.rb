@@ -276,11 +276,14 @@ module RSpec
     end
 
     def self.rubo_cop(args)
-      if defined?(RuboCop)
-        RuboCop::CLI.new.run args
-      else
+      begin
+        require 'rubocop'
+      rescue LoadError
         @error_stream.puts "fatal: RuboCop not found. Is the gem installed in this project?"
+        return
       end
+
+      RuboCop::CLI.new.run args
     end
 
     def self.eval(line, options, &block)
