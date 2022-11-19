@@ -56,6 +56,9 @@ module RSpec
       @config_cache = RSpec::Interactive::ConfigCache.new
 
       @configuration = Configuration.new
+      if !config_file && File.exist?('spec/rspec_interactive.rb')
+        config_file = 'spec/rspec_interactive.rb'
+      end
       load config_file if config_file
 
       check_rails
