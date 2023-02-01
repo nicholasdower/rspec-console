@@ -25,6 +25,17 @@ module RSpec
       def closed?
         @client.closed?
       end
+
+      def sync
+        @sync || false
+      end
+
+      def sync=(sync)
+        @sync = sync
+      end
+
+      def close
+      end
     end
   end
 end

@@ -27,6 +27,17 @@ module RSpec
       def string
         @output
       end
+
+      def sync
+        @sync || false
+      end
+
+      def sync=(sync)
+        @sync = sync
+      end
+
+      def close
+      end
     end
   end
 end

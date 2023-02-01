@@ -28,6 +28,18 @@ module RSpec
       def closed?
         (@thread_map[Thread.current] || @default).closed?
       end
+
+      def sync=(sync)
+        (@thread_map[Thread.current] || @default).sync = sync
+      end
+
+      def sync
+        (@thread_map[Thread.current] || @default).sync
+      end
+
+      def close
+        (@thread_map[Thread.current] || @default).close
+      end
     end
   end
 end
