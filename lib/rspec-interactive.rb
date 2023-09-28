@@ -124,13 +124,11 @@ module RSpec
     end
 
     def self.maybe_trap_interrupt
-      return unless RbConfig::CONFIG['ruby_install_name'] == 'jruby'
-
-      # When on JRuby, Pry traps interrupts and raises an Interrupt exception.
-      # Unfortunately, raising Interrupt is not enough when RSpec is running since it
-      # will only cause the current example to fail. We want to kill RSpec entirely
-      # if it is running so here we disable Pry's handling and rewrite it to include
-      # special handling for RSpec.
+      # Pry traps interrupts and raises an Interrupt exception. Unfortunately, raising
+      # Interrupt is not enough when RSpec is running since it may lead to issues when
+      # using transactional fixtures. Also, when running in JRuby, it seems to only fail
+      # the current example not the entire RSpec run. Here we disable Pry's handling and
+      # rewrite it to include special handling for RSpec.
 
       Pry.config.should_trap_interrupts = false
 
